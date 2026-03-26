@@ -79,29 +79,55 @@ python .\fund_monitor.py
 
 ## GitHub Pages 在线版
 
-本项目已通过 GitHub Actions 自动部署到 GitHub Pages，无需本地启动即可查看基金数据快照。
+本项目已通过 GitHub Actions 自动部署到 GitHub Pages，支持 **实时数据获取**，点击「刷新数据」可获取最新基金估值。
 
 **在线地址：** https://xuefeng0324.github.io/fund/
 
-### 工作原理
+### 实时数据获取原理
 
-1. `build_pages.py` 临时启动本地 `fund_monitor.py` 服务
-2. 抓取首页 HTML + 关键 API 数据（fund_codes / funds / index）
-3. 将 `window.fetch` 拦截器注入 HTML，使静态页面自包含所有数据
-4. 生成 `docs/index.html`
+页面在浏览器端直接调用外部基金 API，无需 Python 后端：
 
-### 自动化流程
+| 功能 | 外部 API | 调用方式 |
+|------|----------|---------|
+| 批量基金估值 | `fundmobapi.eastmoney.com` | CORS fetch（`Access-Control-Allow-Origin: *`） |
+| 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP（`jsonpgz` 回调） |
+| 指数快照 | `push2.eastmoney.com` | CORS fetch |
+| 净值趋势/Sparkline | `fund.eastmoney.com/pingzhongdata` | `<script>` 标签加载 JS |
+| KDJ 计算 | 同 pingzhongdata | 基于净值序列前端计算 |
 
-- **触发条件：** push 到 `main` 分支 或 手动 `workflow_dispatch`
-- **CI 流水线：** `.github/workflows/pages-deploy.yml`
-  - Build：运行 `build_pages.py` 生成静态页面
-  - Deploy：通过 `actions/deploy-pages` 部署到 GitHub Pages
-  - Verify：Playwright 浏览器自动化断言（H1 / 表格行数 / 截图归档）
-- **验证产物：** 截图、HTML 快照、console 日志上传至 Actions Artifacts
+- **首次加载**：使用构建时嵌入的静态数据（保证快速首屏渲染）
+- **点击刷新**：切换到实时外部 API 获取最新数据
+- **API 失败时**：自动 fallback 到静态数据，页面不会崩溃
 
-### 手动重新部署
+核心实现文件：`live_fetch.js`（浏览器端数据获取模块）
 
-在 GitHub 仓库 → Actions → "Deploy GitHub Pages (fund)" → Run workflow。
+### 构建与部署流程
+
+1. `build_pages.py` 临时启动 `fund_monitor.py` 服务，抓取首页 HTML + 关键 API 数据
+2. 注入 `live_fetch.js`（实时获取模块）和 `window.fetch` 拦截器到 HTML
+3. 生成 `docs/index.html`
+4. GitHub Actions 部署到 Pages + Playwright 浏览器验证
+
+### 定时重建
+
+GitHub Actions 在 **交易日盘中（北京时间 9:30-15:00）每 30 分钟** 自动重建，确保首屏静态数据保持新鲜。
+
+- 频率：工作日 10 次/天（跳过午休 11:30-13:00）
+- 月耗约 440 分钟（GitHub 免费额度 2000 分钟/月）
+- Cron 配置见 `.github/workflows/pages-deploy.yml`
+
+### 触发方式
+
+- **自动**：push 到 `main` + 定时 cron
+- **手动**：GitHub 仓库 → Actions → "Deploy GitHub Pages (fund)" → Run workflow
+
+### 验证
+
+CI 部署后自动运行 Playwright 浏览器断言：
+- 页面标题包含"基金" ✓
+- `#fundTable` 表格至少 1 行 ✓
+- 刷新按钮点击后捕获外部 API 请求 ✓
+- HTML 快照 + console 日志上传至 Actions Artifacts
 
 ## 常见问题
 
