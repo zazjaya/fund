@@ -171,30 +171,69 @@
     });
   }
 
+  function todayStr() {
+    var d = new Date();
+    var m = d.getMonth() + 1;
+    var day = d.getDate();
+    return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
+  }
+
+  function getLastTradingChange(code) {
+    return fetchPingzhongdata(code).then(function (d) {
+      if (!d.trend || !d.trend.length) return { name: "--", change: null, date: "--" };
+      var last = d.trend[d.trend.length - 1];
+      var change = safeFloat(last.equityReturn);
+      var dateStr = "--";
+      try { dateStr = new Date(last.x).toISOString().slice(0, 10); } catch (e) {}
+      return { name: d.name, change: change, date: dateStr };
+    }).catch(function () {
+      return { name: "--", change: null, date: "--" };
+    });
+  }
+
   /**
    * 获取基金数据列表（对应 /api/funds 返回格式）
-   * 对应 fund_monitor.py get_fund_data
+   * 对应 fund_monitor.py get_fund_data — 完整复现分类逻辑
    */
   function fetchFundsLive(fundCodes, mode) {
     mode = mode || "auto";
     return fetchRealtimeAuto(fundCodes).then(function (batchMap) {
       var results = [];
+      var noEstimateCodes = [];
+      var today = todayStr();
+
       fundCodes.forEach(function (code) {
         var info = batchMap[code];
-        if (info) {
+        if (info && info.GSZ != null) {
+          // PDATE == today 且有 DWJZ → 用官方净值替代估值
+          var pdate = (info.PDATE || "").trim();
+          if (pdate && pdate === today && info.DWJZ != null) {
+            info.GSZ = info.DWJZ;
+            info.GZTIME = pdate;
+          }
           results.push(info);
         } else {
-          results.push({
-            FCODE: code,
-            SHORTNAME: "",
-            GSZ: null,
-            GSZZL: null,
-            GZTIME: "--",
-            LAST_CHG: null,
-          });
+          noEstimateCodes.push({ code: code, info: info || {} });
         }
       });
-      return results;
+
+      if (!noEstimateCodes.length) return results;
+
+      // 对无估值的基金，从 pingzhongdata 获取上一交易日涨跌
+      var promises = noEstimateCodes.map(function (item) {
+        return getLastTradingChange(item.code).then(function (lcd) {
+          var shortName = item.info.SHORTNAME || lcd.name || "";
+          results.push({
+            FCODE: item.code,
+            SHORTNAME: shortName,
+            GSZ: null,
+            GSZZL: null,
+            GZTIME: lcd.date,
+            LAST_CHG: lcd.change,
+          });
+        });
+      });
+      return Promise.all(promises).then(function () { return results; });
     });
   }
 

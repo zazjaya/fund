@@ -97,12 +97,18 @@ def _start_fund_server(port: int) -> threading.Thread:
     return t
 
 
-def _inject_fetch_mock(html: str, *, fund_codes: list[Any], funds: list[dict[str, Any]], index: list[dict[str, Any]]) -> str:
+def _inject_fetch_mock(
+    html: str, *,
+    fund_codes: list[Any], funds: list[dict[str, Any]], index: list[dict[str, Any]],
+    advice: Any = None, fund_groups: Any = None,
+) -> str:
     marker = "__PXF_FETCH_MOCK__"
 
     fund_codes_json = json.dumps(fund_codes, ensure_ascii=False)
     funds_json = json.dumps(funds, ensure_ascii=False)
     index_json = json.dumps(index, ensure_ascii=False)
+    advice_json = json.dumps(advice or {}, ensure_ascii=False)
+    fund_groups_json = json.dumps(fund_groups or {}, ensure_ascii=False)
 
     repo_root = os.path.dirname(os.path.abspath(__file__))
     live_fetch_path = os.path.join(repo_root, "live_fetch.js")
@@ -121,8 +127,29 @@ def _inject_fetch_mock(html: str, *, fund_codes: list[Any], funds: list[dict[str
   var STATIC = {{
     fund_codes: {fund_codes_json},
     funds: {funds_json},
-    index: {index_json}
+    index: {index_json},
+    advice: {advice_json},
+    fund_groups: {fund_groups_json}
   }};
+
+  // localStorage 管理基金：首次加载时初始化
+  (function initLocalStorage() {{
+    if (!localStorage.getItem("pxf_fund_codes")) {{
+      localStorage.setItem("pxf_fund_codes", JSON.stringify(STATIC.fund_codes));
+    }}
+    if (!localStorage.getItem("pxf_fund_groups")) {{
+      localStorage.setItem("pxf_fund_groups", JSON.stringify(STATIC.fund_groups));
+    }}
+    // 用 localStorage 覆盖 STATIC（用户可能已自定义）
+    try {{
+      var lsCodes = JSON.parse(localStorage.getItem("pxf_fund_codes"));
+      if (Array.isArray(lsCodes) && lsCodes.length > 0) STATIC.fund_codes = lsCodes;
+    }} catch(e) {{}}
+    try {{
+      var lsGroups = JSON.parse(localStorage.getItem("pxf_fund_groups"));
+      if (lsGroups && typeof lsGroups === "object") STATIC.fund_groups = lsGroups;
+    }} catch(e) {{}}
+  }})();
   var _firstFundsLoad = true;
   var _firstIndexLoad = true;
 
@@ -168,23 +195,81 @@ def _inject_fetch_mock(html: str, *, fund_codes: list[Any], funds: list[dict[str
     var pathOnly = p.pathOnly;
     var full = p.full;
     var qs = parseQS(full);
+    var method = (init && init.method) ? init.method.toUpperCase() : "GET";
 
-    // /api/fund_codes — 纯配置，始终用静态
+    // POST /api/fund_codes — localStorage 存储（响应格式与 Python 一致）
+    if (pathOnly === "/api/fund_codes" && method === "POST") {{
+      try {{
+        var body = (init && init.body) ? JSON.parse(init.body) : {{}};
+        if (body.codes && Array.isArray(body.codes)) {{
+          var validCodes = body.codes.filter(function(c) {{
+            var s = String(c).trim();
+            return s && /^[0-9]{{6}}$/.test(s);
+          }}).map(function(c) {{ return String(c).trim(); }});
+          if (validCodes.length > 0) STATIC.fund_codes = validCodes;
+          localStorage.setItem("pxf_fund_codes", JSON.stringify(STATIC.fund_codes));
+          return jsonResp({{ codes: STATIC.fund_codes }});
+        }}
+      }} catch(e) {{ console.warn("POST fund_codes error:", e); }}
+      return jsonResp({{ codes: STATIC.fund_codes }});
+    }}
+
+    // POST /api/fund_groups — localStorage 存储（响应格式与 Python 一致）
+    if (pathOnly === "/api/fund_groups" && method === "POST") {{
+      try {{
+        var body = (init && init.body) ? JSON.parse(init.body) : {{}};
+        var groups = STATIC.fund_groups || {{}};
+        var key = (body.key || "").trim();
+        if (key) {{
+          var inCodes = (body.codes || []).filter(function(c) {{
+            var s = String(c).trim();
+            return s && /^[0-9]{{6}}$/.test(s);
+          }}).map(function(c) {{ return String(c).trim(); }});
+          if (inCodes.length > 0) {{
+            groups[key] = inCodes;
+          }} else if (groups[key]) {{
+            delete groups[key];
+          }}
+          STATIC.fund_groups = groups;
+          localStorage.setItem("pxf_fund_groups", JSON.stringify(groups));
+          return jsonResp({{ key: key, codes: groups[key] || [] }});
+        }}
+      }} catch(e) {{ console.warn("POST fund_groups error:", e); }}
+      return jsonResp({{ key: "", codes: [] }});
+    }}
+
+    // GET /api/fund_codes
     if (pathOnly === "/api/fund_codes") {{
       return jsonResp(STATIC.fund_codes);
     }}
 
     // /api/funds — 核心：首次用静态（快速首屏），后续用实时
     if (pathOnly === "/api/funds") {{
+      // 确定本次请求要用的基金代码列表（密钥过滤）
+      var codesForRequest = STATIC.fund_codes;
+      if (qs.key) {{
+        var grp = (STATIC.fund_groups || {{}})[qs.key];
+        if (Array.isArray(grp) && grp.length > 0) codesForRequest = grp;
+      }}
       if (_firstFundsLoad) {{
         _firstFundsLoad = false;
+        // 首次加载：如果带 key 过滤，从静态数据中筛选
+        if (qs.key) {{
+          var keySet = new Set(codesForRequest);
+          return jsonResp(STATIC.funds.filter(function(f) {{ return keySet.has(f.FCODE); }}));
+        }}
         return jsonResp(STATIC.funds);
       }}
       if (LF) {{
         try {{
-          var liveData = await LF.fetchFundsLive(STATIC.fund_codes, qs.mode || "auto");
+          var liveData = await LF.fetchFundsLive(codesForRequest, qs.mode || "auto");
           if (liveData && liveData.length > 0) return jsonResp(liveData);
         }} catch(e) {{ console.warn("[live_fetch] funds failed, fallback to static:", e); }}
+      }}
+      // fallback: 静态数据（带 key 过滤）
+      if (qs.key) {{
+        var keySet2 = new Set(codesForRequest);
+        return jsonResp(STATIC.funds.filter(function(f) {{ return keySet2.has(f.FCODE); }}));
       }}
       return jsonResp(STATIC.funds);
     }}
@@ -244,13 +329,29 @@ def _inject_fetch_mock(html: str, *, fund_codes: list[Any], funds: list[dict[str
       return jsonResp({{}});
     }}
 
-    // /api/advice — 暂无外部源，返回空
+    // /api/advice — 返回预抓取数据（含 J值/阶段/建议/原因）
     if (pathOnly === "/api/advice" || pathOnly === "/api/advice/") {{
-      return jsonResp({{}});
+      // 如果请求带 codes=xxx,yyy 参数，过滤返回
+      if (qs.codes && STATIC.advice && typeof STATIC.advice === "object") {{
+        var reqCodes = qs.codes.split(",");
+        var filtered = {{}};
+        reqCodes.forEach(function(c) {{ if (STATIC.advice[c]) filtered[c] = STATIC.advice[c]; }});
+        return jsonResp(filtered);
+      }}
+      if (qs.code && STATIC.advice && STATIC.advice[qs.code]) {{
+        return jsonResp(STATIC.advice[qs.code]);
+      }}
+      return jsonResp(STATIC.advice || {{}});
     }}
 
-    // /api/fund_groups, /api/log 等静态/内部接口
-    if (pathOnly === "/api/fund_groups") return jsonResp([]);
+    // /api/fund_groups — localStorage 支持
+    if (pathOnly === "/api/fund_groups") {{
+      if (qs.key) {{
+        var groups = STATIC.fund_groups || {{}};
+        return jsonResp(groups[qs.key] || []);
+      }}
+      return jsonResp(STATIC.fund_groups || {{}});
+    }}
     if (pathOnly === "/api/log") return jsonResp({{}});
 
     // 未命中的 /api/* 返回空对象
@@ -285,12 +386,17 @@ def main() -> None:
     fund_codes = _http_get_json(base_url + "/api/fund_codes", timeout=30)
     funds = _http_get_json_or_fallback(base_url + "/api/funds?mode=auto", fallback=[])
     index = _http_get_json_or_fallback(base_url + "/api/index", fallback=[])
+    advice = _http_get_json_or_fallback(base_url + "/api/advice", fallback={}, timeout=300)
+    fund_groups = _http_get_json_or_fallback(base_url + "/api/fund_groups", fallback={})
 
     # 获取原始 HTML
     html = _http_get_text(base_url + "/")
 
     # 注入 fetch mock
-    html_out = _inject_fetch_mock(html, fund_codes=fund_codes, funds=funds, index=index)
+    html_out = _inject_fetch_mock(
+        html, fund_codes=fund_codes, funds=funds, index=index,
+        advice=advice, fund_groups=fund_groups,
+    )
 
     out_path = os.path.join(docs_dir, "index.html")
     with open(out_path, "w", encoding="utf-8") as f:
