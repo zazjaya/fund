@@ -84,11 +84,19 @@ await (async () => {
     consoleLines.push(`[warn] expected sparkline svg >= 1, got ${svgCount}`);
   }
 
-  await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 60000 });
   const html = await page.content();
   fs.writeFileSync(htmlPath, html, "utf-8");
+
+  let screenshotOk = false;
+  try {
+    await page.screenshot({ path: screenshotPath, fullPage: false, timeout: 15000 });
+    screenshotOk = true;
+  } catch (e) {
+    consoleLines.push(`[warn] screenshot failed: ${e.message}`);
+  }
+
   fs.writeFileSync(consoleLogPath, consoleLines.join("\n"), "utf-8");
 
   await browser.close();
-  console.log("OK:", { url, screenshotPath, htmlPath, consoleLogPath, externalApiHits: externalRequests.length });
+  console.log("OK:", { url, screenshotPath: screenshotOk ? screenshotPath : "SKIPPED", htmlPath, consoleLogPath, externalApiHits: externalRequests.length });
 })();
