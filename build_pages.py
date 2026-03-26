@@ -16,6 +16,7 @@ build_pages.py
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import random
@@ -110,6 +111,10 @@ def _inject_fetch_mock(
     advice_json = json.dumps(advice or {}, ensure_ascii=False)
     fund_groups_json = json.dumps(fund_groups or {}, ensure_ascii=False)
 
+    # 版本号：基于 fund_codes + fund_groups 内容的哈希，数据变更时自动刷新 localStorage
+    version_src = fund_codes_json + "|" + fund_groups_json
+    data_version = hashlib.md5(version_src.encode("utf-8")).hexdigest()[:12]
+
     repo_root = os.path.dirname(os.path.abspath(__file__))
     live_fetch_path = os.path.join(repo_root, "live_fetch.js")
     with open(live_fetch_path, "r", encoding="utf-8") as f:
@@ -129,26 +134,33 @@ def _inject_fetch_mock(
     funds: {funds_json},
     index: {index_json},
     advice: {advice_json},
-    fund_groups: {fund_groups_json}
+    fund_groups: {fund_groups_json},
+    _version: "{data_version}"
   }};
 
-  // localStorage 管理基金：首次加载时初始化
+  // localStorage 管理：版本号机制 + 数据初始化
   (function initLocalStorage() {{
-    if (!localStorage.getItem("pxf_fund_codes")) {{
+    var storedVer = localStorage.getItem("pxf_data_version") || "";
+    var buildVer = STATIC._version;
+    var versionChanged = (storedVer !== buildVer);
+
+    if (versionChanged) {{
+      // 静态数据已更新（fund_codes/fund_groups 变更），用新数据覆盖 localStorage
       localStorage.setItem("pxf_fund_codes", JSON.stringify(STATIC.fund_codes));
-    }}
-    if (!localStorage.getItem("pxf_fund_groups")) {{
       localStorage.setItem("pxf_fund_groups", JSON.stringify(STATIC.fund_groups));
+      localStorage.setItem("pxf_data_version", buildVer);
+      console.log("[PXF] 数据版本更新: " + storedVer + " -> " + buildVer + "，localStorage 已刷新");
+    }} else {{
+      // 版本一致，用 localStorage 中用户自定义的数据覆盖 STATIC
+      try {{
+        var lsCodes = JSON.parse(localStorage.getItem("pxf_fund_codes"));
+        if (Array.isArray(lsCodes) && lsCodes.length > 0) STATIC.fund_codes = lsCodes;
+      }} catch(e) {{}}
+      try {{
+        var lsGroups = JSON.parse(localStorage.getItem("pxf_fund_groups"));
+        if (lsGroups && typeof lsGroups === "object") STATIC.fund_groups = lsGroups;
+      }} catch(e) {{}}
     }}
-    // 用 localStorage 覆盖 STATIC（用户可能已自定义）
-    try {{
-      var lsCodes = JSON.parse(localStorage.getItem("pxf_fund_codes"));
-      if (Array.isArray(lsCodes) && lsCodes.length > 0) STATIC.fund_codes = lsCodes;
-    }} catch(e) {{}}
-    try {{
-      var lsGroups = JSON.parse(localStorage.getItem("pxf_fund_groups"));
-      if (lsGroups && typeof lsGroups === "object") STATIC.fund_groups = lsGroups;
-    }} catch(e) {{}}
   }})();
   var _firstFundsLoad = true;
   var _firstIndexLoad = true;
