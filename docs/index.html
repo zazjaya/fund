@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>基金监控</title>
+<style>
+body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif; margin: 0; padding: 0; background: #f8fafc; }
+header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; padding: 18px 28px; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.container { padding: 20px 28px; max-width: 100%; }
+.toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; padding: 12px 16px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+input[type="text"] { padding:8px 12px; border-radius:6px; border:1px solid #e2e8f0; min-width:100px; font-size:13px; transition: border-color 0.2s; }
+input[type="text"]:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+button { padding:8px 16px; border-radius:6px; border:none; background:#3b82f6; color:#fff; cursor:pointer; font-size:13px; font-weight:500; transition: all 0.2s; }
+button:hover { background:#2563eb; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(59,130,246,0.3); }
+button:disabled { background:#94a3b8; cursor:not-allowed; transform: none; }
+select {
+    padding:8px 32px 8px 12px;
+    border-radius:6px;
+    border:1px solid #e2e8f0;
+    font-size:13px;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
+    cursor:pointer;
+    transition: all 0.2s;
+    min-width:120px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    color: #1e293b;
+    font-weight: 500;
+}
+select:hover {
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+}
+select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    background-color: #fff;
+}
+select option {
+    padding: 10px 12px;
+    background: #fff;
+    color: #1e293b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+select option:hover {
+    background: #f1f5f9;
+}
+select option:checked,
+select option:focus {
+    background: #3b82f6;
+    color: #fff;
+    font-weight: 500;
+}
+.toolbar label {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    color:#64748b;
+    font-weight:500;
+    white-space: nowrap;
+}
+table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; }
+th, td { padding:10px 12px; border-bottom:1px solid #f1f5f9; text-align:left; font-size:13px; }
+th { background:#f8fafc; cursor:pointer; user-select:none; white-space:nowrap; font-weight:600; color:#475569; }
+tr:hover { background:#f8fafc; }
+tr:last-child td { border-bottom: none; }
+.negative { color:#10b981; }
+.positive { color:#ef4444; }
+.chg { font-weight:600; }
+.advice-buy { color:#dc2626; font-weight:600; }
+.sub-section-title { margin-top:20px; margin-bottom:10px; font-weight:600; font-size:15px; color:#1e293b; }
+.muted { color:#64748b; font-size:12px; }
+.index-strip { display:flex; gap:12px; padding:12px 28px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color:#e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.index-card { min-width:120px; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.08); backdrop-filter: blur(10px); font-size:12px; transition: transform 0.2s; }
+.index-card:hover { transform: translateY(-2px); }
+.index-card-title { font-size:11px; margin-bottom:6px; color:#94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+.index-card-main { font-size:18px; font-weight:600; }
+.index-card-sub { font-size:11px; margin-top:4px; opacity: 0.8; }
+.modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.6); backdrop-filter: blur(4px); display:none; align-items:center; justify-content:center; z-index:50; }
+.modal-panel { background:#ffffff; border-radius:12px; padding:24px; min-width:480px; max-width:90vw; max-height:80vh; overflow:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3); font-size:13px; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #e2e8f0; }
+.modal-title { font-weight:600; font-size:16px; color:#1e293b; }
+.fund-list-table { width:100%; border-collapse:collapse; margin-top:12px; }
+.fund-list-table th, .fund-list-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; text-align:left; }
+.fund-list-table th { background:#f8fafc; font-weight:600; color:#475569; }
+.fund-list-table tr:hover { background:#f8fafc; }
+.tag-del { color:#ef4444; cursor:pointer; padding:4px 8px; border-radius:4px; transition: all 0.2s; display:inline-block; }
+.tag-del:hover { background:#fee2e2; color:#dc2626; }
+.key-only-btn { display:none; }
+.key-only-btn.show { display:inline-block !important; }
+.col-spark-intra,
+.col-spark-nav-d,
+.col-spark-nav-w,
+td[data-spark-intraday],
+td[data-spark-nav-d],
+td[data-spark-nav-w] {
+    display: none;
+}
+.custom-alert-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.6); backdrop-filter: blur(4px); display:none; align-items:center; justify-content:center; z-index:1000; }
+.custom-alert-backdrop.show { display:flex; }
+.custom-alert-box { background:#fff; border-radius:12px; padding:24px; min-width:320px; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation: alertFadeIn 0.2s ease-out; }
+@keyframes alertFadeIn {
+    from { opacity:0; transform: scale(0.95) translateY(-10px); }
+    to { opacity:1; transform: scale(1) translateY(0); }
+}
+.custom-alert-title { font-size:16px; font-weight:600; color:#1e293b; margin-bottom:12px; }
+.custom-alert-message { font-size:14px; color:#475569; line-height:1.6; margin-bottom:20px; }
+.custom-alert-button { padding:8px 20px; border-radius:6px; border:none; background:#3b82f6; color:#fff; cursor:pointer; font-size:13px; font-weight:500; transition: all 0.2s; float:right; }
+.custom-alert-button:hover { background:#2563eb; }
+.key-input-wrapper { position:relative; display:inline-block; }
+.key-delete-btn { position:absolute; right:4px; top:50%; transform:translateY(-50%); padding:4px 8px; border:none; background:transparent; color:#ef4444; cursor:pointer; font-size:12px; border-radius:4px; display:none; transition: background-color 0.2s; }
+.key-delete-btn:hover { background:#fee2e2; transform:translateY(-50%); }
+.key-delete-btn.show { display:block; }
+.custom-select { position:relative; display:inline-block; width: auto; min-width:100px; }
+.custom-select-btn {
+    padding:8px 28px 8px 12px;
+    border-radius:6px;
+    border:1px solid #e2e8f0;
+    font-size:13px;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E") no-repeat right 10px center;
+    cursor:pointer;
+    transition: all 0.2s;
+    color: #1e293b;
+    font-weight: 500;
+    user-select: none;
+    display: inline-block;
+    white-space: nowrap;
+}
+.custom-select-btn:hover {
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+}
+.custom-select-btn.active {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.custom-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 6px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+    max-height: 280px;
+    overflow-y: auto;
+    animation: dropdownFadeIn 0.15s ease-out;
+}
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.custom-select-dropdown.show { display: block; }
+.custom-select-option {
+    padding: 11px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #334155;
+    transition: all 0.15s ease;
+    border-bottom: 1px solid #f1f5f9;
+    position: relative;
+}
+.custom-select-option:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+.custom-select-option:last-child {
+    border-bottom: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+.custom-select-option:hover {
+    background: #f8fafc;
+    color: #1e40af;
+    padding-left: 16px;
+}
+.custom-select-option.selected {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af;
+    font-weight: 600;
+}
+.custom-select-option.selected:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+</style>
+</head>
+<body>
+<header>
+<h1>基金监控（估值分时）</h1>
+</header>
+<div id="indexStrip" class="index-strip"></div>
+<div class="container">
+<div class="toolbar">
+<input id="search" type="text" placeholder="按代码 / 名称搜索..." />
+<div class="key-input-wrapper">
+  <input id="keyInput" type="text" placeholder="输入密钥        " style="width:100px; padding-right:28px;" />
+  <button id="keyDeleteBtn" class="key-delete-btn" title="删除密钥">×</button>
+</div>
+<label>
+  接口:
+  <div class="custom-select" id="sourceSelectWrapper">
+    <div class="custom-select-btn" id="sourceSelectBtn">自动</div>
+    <div class="custom-select-dropdown" id="sourceSelectDropdown">
+      <div class="custom-select-option selected" data-value="auto">自动</div>
+      <div class="custom-select-option" data-value="fundgz">fundgz</div>
+      <div class="custom-select-option" data-value="akshare">AKShare</div>
+      <div class="custom-select-option" data-value="em">东财</div>
+      <div class="custom-select-option" data-value="sina_fund">新浪基金</div>
+      <div class="custom-select-option" data-value="sina_stock">新浪股票</div>
+    </div>
+    <select id="sourceSelect" style="display:none;">
+      <option value="auto" selected>自动</option>
+      <option value="fundgz">fundgz</option>
+      <option value="akshare">AKShare</option>
+      <option value="em">东财</option>
+      <option value="sina_fund">新浪基金</option>
+      <option value="sina_stock">新浪股票</option>
+    </select>
+  </div>
+</label>
+<button id="refreshBtn" style="margin-left:8px;">刷新数据</button>
+<span id="updateTime" class="muted"></span>
+<button id="manageFundsBtn" class="key-only-btn" style="margin-left:8px; display:none;">管理基金</button>
+<button id="viewToggleBtn" class="key-only-btn" style="margin-left:8px; display:none;">看全部</button>
+</div>
+<div>
+<div class="sub-section-title">实时估值基金</div>
+<table id="fundTable">
+<thead><tr>
+<th data-key="FCODE">代码</th>
+<th data-key="SHORTNAME">名称</th>
+<th class="col-spark-intra">估值分时</th>
+<th class="col-spark-nav-d">净值趋势(日K/3M)</th>
+<th class="col-spark-nav-w">净值趋势(周K/1Y)</th>
+<th data-key="GSZ">估算净值</th>
+<th data-key="GSZZL">估算涨跌</th>
+<th data-key="KDJJ_D">J(日)</th>
+<th>阶段</th>
+<th>建议</th>
+<th>原因</th>
+<th data-key="GZTIME">更新时间</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+<div style="margin-top:16px;">
+<div class="sub-section-title">上一交易日涨跌</div>
+<table id="specialTable">
+<thead><tr>
+<th data-key="FCODE">代码</th>
+<th data-key="SHORTNAME">名称</th>
+<th data-key="LAST_CHG">涨跌幅</th>
+<th data-key="KDJJ_D">J(日)</th>
+<th>阶段</th>
+<th>建议</th>
+<th>原因</th>
+<th data-key="GZTIME">日期</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div id="fundManageModal" class="modal-backdrop">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div class="modal-title">管理基金列表</div>
+      <button id="closeFundManageBtn">关闭</button>
+    </div>
+    <div>
+      <div style="margin-bottom:6px;">
+        <input id="newFundInput" type="text" placeholder="新增基金代码(6位)" style="width:120px; margin-right:4px;" />
+        <button id="addFundBtn">添加</button>
+      </div>
+      <table class="fund-list-table">
+        <thead><tr><th style="width:80px;">代码</th><th>名称</th><th style="width:60px;">操作</th></tr></thead>
+        <tbody id="fundManageList"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px; text-align:right;">
+      <button id="saveFundListBtn" style="margin-right:6px;">保存</button>
+      <button id="cancelFundListBtn">取消</button>
+    </div>
+</div>
+</div>
+<script>
+(function() {
+  window.__PXF_FETCH_MOCK__ = true;
+  const API = {
+    "/api/fund_codes": ["001549", "012922", "024195", "014425", "012349", "004010", "012847", "025949", "007467", "004753", "024329", "010364", "001595", "020256", "008591", "014413", "008280", "016858", "012734", "021934", "014111", "017836", "004744", "006531", "005918", "012805", "011103", "400015", "004643", "012769", "019667", "025209", "011613", "006328", "019671", "020404", "019005", "012414"],
+    "/api/funds?mode=auto": [{"FCODE": "001549", "SHORTNAME": "天弘上证50ETF联接C", "GSZ": 1.4037, "GSZZL": 1.01, "DWJZ": 1.3897, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "012922", "SHORTNAME": "易方达全球成长精选混合(QDII)人民币C", "GSZ": 2.7193, "GSZZL": -0.46, "DWJZ": 2.872, "GZTIME": "2026-03-07 05:00", "PDATE": "2026-03-24"}, {"FCODE": "024195", "SHORTNAME": "永赢国证商用卫星通信产业ETF发起联接C", "GSZ": 1.5021, "GSZZL": 1.13, "DWJZ": 1.4853, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "014425", "SHORTNAME": "博时恒生医疗保健ETF发起式联接(QDII)C", "GSZ": 0.8739, "GSZZL": 0.69, "DWJZ": 0.8679, "GZTIME": "2026-03-25 16:00", "PDATE": "2026-03-24"}, {"FCODE": "012349", "SHORTNAME": "天弘恒生科技ETF联接C", "GSZ": 0.672, "GSZZL": 1.81, "DWJZ": 0.6601, "GZTIME": "2026-03-25 16:00", "PDATE": "2026-03-24"}, {"FCODE": "004010", "SHORTNAME": "华泰柏瑞鼎利灵活配置混合A", "GSZ": 1.5482, "GSZZL": 0.13, "DWJZ": 1.5462, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "012847", "SHORTNAME": "诺安积极回报混合C", "GSZ": 2.1107, "GSZZL": 1.23, "DWJZ": 2.085, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "025949", "SHORTNAME": "诺安研究精选股票C", "GSZ": 2.6951, "GSZZL": 1.47, "DWJZ": 2.656, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "007467", "SHORTNAME": "华泰柏瑞中证红利低波ETF联接C", "GSZ": 1.6259, "GSZZL": 0.72, "DWJZ": 1.6143, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "004753", "SHORTNAME": "广发中证传媒ETF联接C", "GSZ": 0.9737, "GSZZL": 2.08, "DWJZ": 0.9539, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "024329", "SHORTNAME": "易方达恒生港股通创新药ETF联接发起式C", "GSZ": 0.9564, "GSZZL": 0.78, "DWJZ": 0.949, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "010364", "SHORTNAME": "鹏华空天军工指数(LOF)C", "GSZ": 1.082, "GSZZL": 1.8, "DWJZ": 1.0629, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "001595", "SHORTNAME": "天弘中证银行ETF联接C", "GSZ": 1.6922, "GSZZL": 0.63, "DWJZ": 1.6816, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "020256", "SHORTNAME": "中欧中证机器人指数发起C", "GSZ": 1.4405, "GSZZL": 2.0, "DWJZ": 1.4123, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "008591", "SHORTNAME": "天弘中证全指证券公司ETF联接C", "GSZ": 1.1653, "GSZZL": 1.11, "DWJZ": 1.1525, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "014413", "SHORTNAME": "招商核心竞争力混合C", "GSZ": 1.1537, "GSZZL": 1.3, "DWJZ": 1.1389, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "008280", "SHORTNAME": "国泰中证煤炭ETF联接C", "GSZ": 2.2982, "GSZZL": -1.56, "DWJZ": 2.3346, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "016858", "SHORTNAME": "国金量化多因子股票C", "GSZ": 3.1324, "GSZZL": 2.04, "DWJZ": 3.0698, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "012734", "SHORTNAME": "易方达中证人工智能主题ETF联接C", "GSZ": 1.7464, "GSZZL": 2.7, "DWJZ": 1.7005, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "021934", "SHORTNAME": "富国中证通信设备主题ETF发起式联接C", "GSZ": 2.8102, "GSZZL": 3.25, "DWJZ": 2.7217, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "014111", "SHORTNAME": "嘉实中证稀有金属主题ETF发起联接C", "GSZ": 0.9916, "GSZZL": 2.81, "DWJZ": 0.9645, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "017836", "SHORTNAME": "信澳匠心回报混合C", "GSZ": 2.0254, "GSZZL": 1.73, "DWJZ": 1.9909, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "004744", "SHORTNAME": "易方达创业板ETF联接C", "GSZ": 3.3116, "GSZZL": 2.01, "DWJZ": 3.2463, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "006531", "SHORTNAME": "华泰柏瑞量化驱动混合C", "GSZ": 1.7475, "GSZZL": 1.38, "DWJZ": 1.7237, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "005918", "SHORTNAME": "天弘沪深300ETF联接C", "GSZ": 1.4077, "GSZZL": 1.4, "DWJZ": 1.3883, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "012805", "SHORTNAME": "广发恒生科技ETF联接(QDII)C", "GSZ": 0.7989, "GSZZL": 1.81, "DWJZ": 0.7847, "GZTIME": "2026-03-25 16:00", "PDATE": "2026-03-24"}, {"FCODE": "011103", "SHORTNAME": "天弘中证光伏产业指数C", "GSZ": 0.9548, "GSZZL": 1.0, "DWJZ": 0.9454, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "400015", "SHORTNAME": "东方新能源汽车混合", "GSZ": 3.0419, "GSZZL": 1.37, "DWJZ": 3.0007, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "004643", "SHORTNAME": "南方中证房地产ETF发起联接C", "GSZ": 0.5119, "GSZZL": 1.38, "DWJZ": 0.5049, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "012769", "SHORTNAME": "华夏中证动漫游戏ETF发起式联接C", "GSZ": 1.3617, "GSZZL": 2.44, "DWJZ": 1.3293, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "019667", "SHORTNAME": "易方达中证创新药产业ETF联接发起式C", "GSZ": 0.9264, "GSZZL": 0.76, "DWJZ": 0.9194, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "025209", "SHORTNAME": "永赢先锋半导体智选混合发起C", "GSZ": 1.726, "GSZZL": 2.76, "DWJZ": 1.6797, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "011613", "SHORTNAME": "华夏科创50ETF联接C", "GSZ": 1.0413, "GSZZL": 1.91, "DWJZ": 1.0218, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "012414", "SHORTNAME": "招商中证白酒指数(LOF)C", "GSZ": 0.6377, "GSZZL": 0.46, "DWJZ": 0.6348, "GZTIME": "2026-03-25 15:00", "PDATE": "2026-03-24"}, {"FCODE": "006328", "SHORTNAME": "易方达中证海外互联网50ETF联接(QDII)C", "GSZ": null, "GSZZL": null, "GZTIME": "2026-03-23", "LAST_CHG": -2.36}, {"FCODE": "019671", "SHORTNAME": "广发港股创新药ETF联接(QDII)C", "GSZ": null, "GSZZL": null, "GZTIME": "2026-03-24", "LAST_CHG": 3.8}, {"FCODE": "020404", "SHORTNAME": "易方达信创ETF联接C", "GSZ": null, "GSZZL": null, "GZTIME": "2026-03-24", "LAST_CHG": 1.95}, {"FCODE": "019005", "SHORTNAME": "国投瑞银白银期货(LOF)C", "GSZ": null, "GSZZL": null, "GZTIME": "2026-03-24", "LAST_CHG": 1.5}],
+    "/api/index": [{"code": "000001", "name": "上证指数", "last": 3931.84, "chg": 50.56, "pct": 1.3}, {"code": "000300", "name": "沪深300", "last": 4537.47, "chg": 62.75, "pct": 1.4}, {"code": "399001", "name": "深证成指", "last": 13801.0, "chg": 264.44, "pct": 1.95}, {"code": "399006", "name": "创业板指", "last": 3316.97, "chg": 65.42, "pct": 2.01}]
+  };
+
+  const ORIG_FETCH = window.fetch ? window.fetch.bind(window) : null;
+
+  function normPathAndQuery(url) {
+    try {
+      // url 可能是相对路径 /api/xxx?...
+      if (typeof url === "string" && url.startsWith("http")) {
+        const u = new URL(url);
+        return u.pathname + (u.search || "");
+      }
+      if (typeof url === "string") {
+        const q = url.indexOf("?");
+        if (q >= 0) return url.slice(0, q) + url.slice(q); // keep ?...
+        return url;
+      }
+    } catch (e) {}
+    return String(url);
+  }
+
+  window.fetch = async function(input, init) {
+    const url = (typeof input === "string") ? input : (input && input.url ? input.url : String(input));
+    const full = normPathAndQuery(url);
+    const pathOnly = (typeof url === "string") ? url.split("?")[0] : String(url);
+
+    // 关键接口：用于首屏渲染
+    if (pathOnly === "/api/fund_codes") {
+      return new Response(JSON.stringify(API["/api/fund_codes"]), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+    if (full === "/api/funds?mode=auto" || full === "/api/funds") {
+      return new Response(JSON.stringify(API["/api/funds?mode=auto"]), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+    if (pathOnly === "/api/index") {
+      return new Response(JSON.stringify(API["/api/index"]), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+
+    // advice：MVP 先返回空对象，保证页面不崩溃
+    if (pathOnly === "/api/advice" || pathOnly === "/api/advice/") {
+      return new Response(JSON.stringify({}), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+
+    // 页面 sparkline：返回占位 points（>=2 即可绘制 svg）
+    if (pathOnly === "/api/sparkline/intraday" ||
+        pathOnly === "/api/sparkline/nav/daily" ||
+        pathOnly === "/api/sparkline/nav/weekly") {
+      return new Response(JSON.stringify({ points: [1, 2] }), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+
+    // 其他接口：尽量返回空结构
+    if (pathOnly === "/api/fund_groups" || pathOnly === "/api/kdj") {
+      return new Response(JSON.stringify([]), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+    if (pathOnly === "/api/log") {
+      return new Response(JSON.stringify({}), { headers: {"Content-Type":"application/json; charset=utf-8"} });
+    }
+
+    // 未命中：走原始 fetch（如果有）
+    if (ORIG_FETCH) return ORIG_FETCH(input, init);
+    throw new Error("PXF fetch mock: no handler for " + url);
+  };
+})();
+</script><script>
+// 自定义alert函数，替换原生alert
+function customAlert(message, title = '提示') {
+    return new Promise((resolve) => {
+        const backdrop = document.getElementById('customAlertBackdrop');
+        const titleEl = document.getElementById('customAlertTitle');
+        const messageEl = document.getElementById('customAlertMessage');
+        const button = document.getElementById('customAlertButton');
+
+        if (!backdrop || !titleEl || !messageEl || !button) {
+            // 如果元素不存在，使用原生alert
+            alert(message);
+            resolve();
+            return;
+        }
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        button.textContent = '确定';
+        // 隐藏取消按钮（如果存在）
+        const cancelBtn = backdrop.querySelector('.custom-alert-cancel');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        backdrop.classList.add('show');
+
+        const closeAlert = () => {
+            backdrop.classList.remove('show');
+            resolve(true);
+        };
+
+        button.onclick = closeAlert;
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) {
+                closeAlert();
+            }
+        };
+    });
+}
+
+// 自定义confirm函数
+function customConfirm(message, title = '确认') {
+    return new Promise((resolve) => {
+        const backdrop = document.getElementById('customAlertBackdrop');
+        const titleEl = document.getElementById('customAlertTitle');
+        const messageEl = document.getElementById('customAlertMessage');
+        const button = document.getElementById('customAlertButton');
+
+        if (!backdrop || !titleEl || !messageEl || !button) {
+            // 如果元素不存在，使用原生confirm
+            resolve(confirm(message));
+            return;
+        }
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        button.textContent = '确定';
+        backdrop.classList.add('show');
+
+        const handleConfirm = () => {
+            backdrop.classList.remove('show');
+            resolve(true);
+        };
+
+        const handleCancel = () => {
+            backdrop.classList.remove('show');
+            resolve(false);
+        };
+
+        button.onclick = handleConfirm;
+        button.textContent = '确定';
+
+        // 添加或显示取消按钮
+        let cancelBtn = backdrop.querySelector('.custom-alert-cancel');
+        if (!cancelBtn) {
+            cancelBtn = document.createElement('button');
+            cancelBtn.className = 'custom-alert-cancel';
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = 'padding:8px 20px; border-radius:6px; border:1px solid #e2e8f0; background:#fff; color:#475569; cursor:pointer; font-size:13px; font-weight:500; transition: all 0.2s; float:right; margin-right:10px;';
+            cancelBtn.onmouseenter = () => { cancelBtn.style.background = '#f1f5f9'; };
+            cancelBtn.onmouseleave = () => { cancelBtn.style.background = '#fff'; };
+            button.parentElement.insertBefore(cancelBtn, button);
+        }
+        cancelBtn.style.display = 'block';
+        cancelBtn.onclick = handleCancel;
+
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) {
+                handleCancel();
+            }
+        };
+    });
+}
+
+let rawData = [];
+let lastKey = ''; // 记录上一次的密钥，用于检测密钥变化
+let sortState = { key: null, asc: true };
+let sparkVersion = {}; // code -> 版本标记（基于时间+净值），用于避免重复重画分时/净值趋势图
+let isLoading = false; // 避免重复触发刷新请求
+let pendingReload = false; // 切换接口时，若正在加载，则在本轮完成后再自动刷新一次
+let fundCodes = []; // 当前基金代码列表（从后端加载）
+let dataSourceMode = 'auto'; // 当前选中的数据接口模式：auto / em / fundgz / sina_fund / sina_stock / akshare
+let viewMode = 'self'; // 查看模式：'self' 看自己 / 'all' 看全部
+let currentValidKey = ''; // 当前验证成功的密钥
+
+// 验证密钥并更新UI
+async function validateKey(key) {
+    if (!key || key.trim() === '') {
+        currentValidKey = '';
+        viewMode = 'self';
+        // 隐藏管理基金和切换按钮
+        const manageBtn = document.getElementById('manageFundsBtn');
+        const toggleBtn = document.getElementById('viewToggleBtn');
+        const deleteBtn = document.getElementById('keyDeleteBtn');
+        if (manageBtn) manageBtn.classList.remove('show');
+        if (toggleBtn) toggleBtn.classList.remove('show');
+        if (deleteBtn) deleteBtn.classList.remove('show');
+        // 清除localStorage
+        localStorage.removeItem('fundMonitorValidKey');
+        return false;
+    }
+
+    try {
+        // 验证密钥是否存在：传入key参数，如果返回数组说明密钥存在
+        const res = await fetch('/api/fund_groups?key=' + encodeURIComponent(key));
+        const result = await res.json();
+        // 如果返回的是数组，说明密钥存在
+        const keyExists = Array.isArray(result);
+
+        if (keyExists) {
+            currentValidKey = key;
+            viewMode = 'self';
+            // 保存到localStorage
+            localStorage.setItem('fundMonitorValidKey', key);
+            // 显示管理基金和切换按钮
+            const manageBtn = document.getElementById('manageFundsBtn');
+            const toggleBtn = document.getElementById('viewToggleBtn');
+            const deleteBtn = document.getElementById('keyDeleteBtn');
+            if (manageBtn) manageBtn.classList.add('show');
+            if (toggleBtn) {
+                toggleBtn.classList.add('show');
+                toggleBtn.textContent = '看全部';
+            }
+            if (deleteBtn) deleteBtn.classList.add('show');
+            return true;
+        } else {
+            currentValidKey = '';
+            // 隐藏按钮
+            const manageBtn = document.getElementById('manageFundsBtn');
+            const toggleBtn = document.getElementById('viewToggleBtn');
+            const deleteBtn = document.getElementById('keyDeleteBtn');
+            if (manageBtn) manageBtn.classList.remove('show');
+            if (toggleBtn) toggleBtn.classList.remove('show');
+            if (deleteBtn) deleteBtn.classList.remove('show');
+            localStorage.removeItem('fundMonitorValidKey');
+            customAlert('密钥验证失败，该密钥不存在');
+            return false;
+        }
+    } catch (e) {
+        console.error('验证密钥失败:', e);
+        return false;
+    }
+}
+
+// 检查是否是休市日（周末或节假日）
+function isMarketClosed() {
+    const now = new Date();
+    const day = now.getDay();
+    // 周六(6)或周日(0)是休市日
+    if (day === 0 || day === 6) {
+        return true;
+    }
+    // TODO: 可以添加节假日判断
+    return false;
+}
+
+async function loadIndexStrip() {
+    try {
+        const res = await fetch('/api/index');
+        const items = await res.json();
+        const bar = document.getElementById('indexStrip');
+        if (!bar) return;
+        bar.innerHTML = '';
+        if (!Array.isArray(items) || items.length === 0) {
+            bar.innerHTML = '<span class="muted">指数数据加载中...</span>';
+            return;
+        }
+        for (const it of items) {
+            const last = (it.last != null && !isNaN(parseFloat(it.last))) ? parseFloat(it.last).toFixed(2) : '--';
+            const chg = (it.chg != null && !isNaN(parseFloat(it.chg))) ? parseFloat(it.chg).toFixed(2) : '--';
+            const pct = (it.pct != null && !isNaN(parseFloat(it.pct))) ? (parseFloat(it.pct).toFixed(2) + '%') : '--';
+            const up = it.pct != null && !isNaN(parseFloat(it.pct)) ? parseFloat(it.pct) >= 0 : null;
+            const cls = up == null ? '' : (up ? 'positive' : 'negative');
+            const signChg = chg === '--' ? '--' : (up ? '+' + chg : chg);
+            const signPct = pct === '--' ? '--' : (up ? '+' + pct : pct);
+            const card = document.createElement('div');
+            card.className = 'index-card';
+            card.innerHTML = `<div class="index-card-title">${it.name || it.code || '--'}</div>
+<div class="index-card-main ${cls}">${last}</div>
+<div class="index-card-sub ${cls}">${signChg}  ${signPct}</div>`;
+            bar.appendChild(card);
+        }
+    } catch (e) {
+        const bar = document.getElementById('indexStrip');
+        if (bar) bar.innerHTML = '<span class="muted">指数数据加载失败</span>';
+    }
+}
+async function loadFundCodes() {
+    try {
+        const res = await fetch('/api/fund_codes');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            fundCodes = data;
+        }
+    } catch (e) {
+        // 忽略基金代码加载错误，保持默认列表
+    }
+}
+async function openFundManageModal() {
+    const modal = document.getElementById('fundManageModal');
+    const listBody = document.getElementById('fundManageList');
+    if (!modal || !listBody) return;
+    // 验证密钥（从localStorage或输入框获取）
+    const storedKey = localStorage.getItem('fundMonitorValidKey');
+    const keyInput = document.getElementById('keyInput');
+    const inputKey = keyInput ? keyInput.value.trim() : '';
+    const key = storedKey || inputKey;
+    if (!key || key !== currentValidKey) {
+        customAlert('请先输入并验证密钥');
+        return;
+    }
+    listBody.innerHTML = '';
+    // 获取当前密钥分组的基金列表
+    try {
+        const res = await fetch('/api/fund_groups?key=' + encodeURIComponent(key));
+        const codes = await res.json();
+        if (!Array.isArray(codes)) {
+            customAlert('获取基金列表失败');
+            return;
+        }
+        const byCode = {};
+        if (Array.isArray(rawData)) {
+            for (const f of rawData) {
+                if (f && f.FCODE) byCode[f.FCODE] = f;
+            }
+        }
+        codes.forEach(code => {
+            const tr = document.createElement('tr');
+            const f = byCode[code] || {};
+            tr.innerHTML = `<td>${code}</td><td>${(f.SHORTNAME || '--').slice ? (f.SHORTNAME || '--').slice(0, 16) : '--'}</td><td><span class="tag-del" data-code="${code}">删除</span></td>`;
+            listBody.appendChild(tr);
+        });
+        modal.style.display = 'flex';
+    } catch (e) {
+        customAlert('获取基金列表失败：' + e);
+    }
+}
+function closeFundManageModal() {
+    const modal = document.getElementById('fundManageModal');
+    if (modal) modal.style.display = 'none';
+}
+function renderSparklineSvg(points, width=90, height=26, stroke='#16a34a') {
+    if (!points || points.length < 2) return '';
+    const min = Math.min(...points); const max = Math.max(...points);
+    const span = (max - min) || 1; const pad = 2;
+    const w = width - pad * 2; const h = height - pad * 2;
+    const step = w / (points.length - 1);
+    let d = '';
+    for (let i = 0; i < points.length; i++) {
+        const x = pad + step * i;
+        const y = pad + (1 - (points[i] - min) / span) * h;
+        d += (i === 0 ? 'M' : 'L') + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+    }
+    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path d="${d.trim()}" fill="none" stroke="${stroke}" stroke-width="1.6"></path></svg>`;
+}
+async function fillSparklines(tableSelector) {
+    const rows = document.querySelectorAll(tableSelector + ' tbody tr[data-code]');
+    for (const tr of rows) {
+        const code = tr.getAttribute('data-code');
+        const ver = tr.getAttribute('data-ver') || '';
+        const cellIntra = tr.querySelector('td[data-spark-intraday]');
+        const cellNavD = tr.querySelector('td[data-spark-nav-d]');
+        const cellNavW = tr.querySelector('td[data-spark-nav-w]');
+        if (!code) continue;
+        // 若版本号未变化且已有svg，不必重复请求/重画，提高刷新速度
+        const lastVer = sparkVersion[code];
+        const hasDrawn =
+            (cellIntra && cellIntra.querySelector('svg')) ||
+            (cellNavD && cellNavD.querySelector('svg')) ||
+            (cellNavW && cellNavW.querySelector('svg'));
+        if (ver && lastVer === ver && hasDrawn) {
+            continue;
+        }
+        if (cellIntra) {
+            cellIntra.innerHTML = '<span class="muted">...</span>';
+            try {
+                const res = await fetch('/api/sparkline/intraday?code=' + encodeURIComponent(code));
+                const payload = await res.json();
+                const pts = payload.points;
+                if (!pts || pts.length < 2) { cellIntra.innerHTML = '<span class="muted">--</span>'; }
+                else {
+                    const up = pts[pts.length - 1] >= pts[0];
+                    cellIntra.innerHTML = renderSparklineSvg(pts, 90, 26, up ? '#dc2626' : '#16a34a');
+                }
+            } catch (e) { cellIntra.innerHTML = '<span class="muted">--</span>'; }
+        }
+        if (cellNavD) {
+            cellNavD.innerHTML = '<span class="muted">...</span>';
+            try {
+                const res = await fetch('/api/sparkline/nav/daily?code=' + encodeURIComponent(code));
+                const payload = await res.json();
+                const pts = payload.points;
+                if (!pts || pts.length < 2) { cellNavD.innerHTML = '<span class="muted">--</span>'; }
+                else {
+                    const up = pts[pts.length - 1] >= pts[0];
+                    cellNavD.innerHTML = renderSparklineSvg(pts, 90, 26, up ? '#dc2626' : '#16a34a');
+                }
+            } catch (e) { cellNavD.innerHTML = '<span class="muted">--</span>'; }
+        }
+        if (cellNavW) {
+            cellNavW.innerHTML = '<span class="muted">...</span>';
+            try {
+                const res = await fetch('/api/sparkline/nav/weekly?code=' + encodeURIComponent(code));
+                const payload = await res.json();
+                const pts = payload.points;
+                if (!pts || pts.length < 2) { cellNavW.innerHTML = '<span class="muted">--</span>'; }
+                else {
+                    const up = pts[pts.length - 1] >= pts[0];
+                    cellNavW.innerHTML = renderSparklineSvg(pts, 90, 26, up ? '#dc2626' : '#16a34a');
+                }
+            } catch (e) { cellNavW.innerHTML = '<span class="muted">--</span>'; }
+        }
+        sparkVersion[code] = ver;
+    }
+}
+// */
+
+// 全局错误上报：把前端 JS 错误发到 /api/log，让 Python 终端可以看到
+window.addEventListener('error', function (e) {
+    try {
+        const msg = encodeURIComponent(String(e.message || ''));
+        const src = encodeURIComponent(String(e.filename || ''));
+        const line = encodeURIComponent(String(e.lineno || ''));
+        const col = encodeURIComponent(String(e.colno || ''));
+        const detail = encodeURIComponent(String((e.error && e.error.stack) || ''));
+        fetch('/api/log?msg=' + msg + '&src=' + src + '&line=' + line + '&col=' + col + '&detail=' + detail);
+    } catch (_) {}
+});
+function splitFunds(data) {
+    const normal = []; const special = [];
+    for (const f of data) {
+        // 有估值(GSZ 不为 null)的放在“实时估值基金”，否则放在“上一交易日涨跌”
+        if (f && f.GSZ != null) normal.push(f);
+        else special.push(f);
+    }
+    return { normal, special };
+}
+function renderTables() {
+    const keyword = document.getElementById('search').value.trim().toLowerCase();
+    const keyInput = document.getElementById('keyInput');
+    const currentKey = keyInput ? keyInput.value.trim() : '';
+    const hasKey = currentKey.length > 0;
+    // 如果有密钥，显示"管理基金"按钮
+    const manageBtn = document.getElementById('manageFundsBtn');
+    if (manageBtn) {
+        if (hasKey) {
+            manageBtn.classList.add('show');
+        } else {
+            manageBtn.classList.remove('show');
+        }
+    }
+    const { normal, special } = splitFunds(rawData);
+    const filterFn = f => !keyword || (f.FCODE && f.FCODE.toLowerCase().includes(keyword)) || (f.SHORTNAME && f.SHORTNAME.toLowerCase().includes(keyword));
+    let normalData = normal.filter(filterFn); let specialData = special.filter(filterFn);
+    // 默认排序：
+    // - 实时估值基金：按估算涨跌(GSZZL)从高到低
+    // - 上一交易日涨跌：按上一日涨跌(LAST_CHG)从高到低
+    if (!sortState.key) {
+        const asc = false;
+        const cmpBy = key => (a, b) => {
+            const va = a[key]; const vb = b[key];
+            if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+            const na = parseFloat(va); const nb = parseFloat(vb);
+            if (!isNaN(na) && !isNaN(nb)) { return asc ? na - nb : nb - na; }
+            return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        };
+        normalData.sort(cmpBy('GSZZL'));
+        specialData.sort(cmpBy('LAST_CHG'));
+    } else {
+        const { key, asc } = sortState;
+        const cmp = (a, b) => {
+            const va = a[key]; const vb = b[key];
+            if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+            const na = parseFloat(va); const nb = parseFloat(vb);
+            if (!isNaN(na) && !isNaN(nb)) { return asc ? na - nb : nb - na; }
+            return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        };
+        normalData.sort(cmp); specialData.sort(cmp);
+    }
+    const fundBody = document.querySelector('#fundTable tbody');
+    // 缓存旧行，避免每次重建导致分时/净值趋势图和建议/原因都被清空
+    const oldFundRows = {};
+    for (const tr of fundBody.querySelectorAll('tr[data-code]')) {
+        const c = tr.getAttribute('data-code');
+        if (c) oldFundRows[c] = tr;
+    }
+    fundBody.innerHTML = '';
+    for (const f of normalData) {
+        const tr = document.createElement('tr');
+        const chg = f.GSZZL != null ? parseFloat(f.GSZZL) : null;
+        const cls = chg == null ? '' : (chg > 0 ? 'chg positive' : (chg < 0 ? 'chg negative' : 'chg'));
+        const ver = `${f.GZTIME || ''}_${f.GSZ != null ? f.GSZ : ''}`;
+        const code = f.FCODE || '';
+        let trExisting = oldFundRows[code];
+        if (trExisting) {
+            // 复用旧行：只更新基础文本/类名，不动分时/净值趋势 svg
+            trExisting.setAttribute('data-code', code);
+            const oldVer = trExisting.getAttribute('data-ver') || '';
+            trExisting.setAttribute('data-ver', ver);
+            const tds = trExisting.children;
+            if (tds.length >= 12) {
+                tds[0].textContent = code || '--';
+                tds[1].textContent = (f.SHORTNAME || '--').slice(0, 12);
+                tds[5].textContent = f.GSZ != null ? f.GSZ : '--';
+                tds[6].className = cls;
+                tds[6].textContent = chg != null ? chg.toFixed(2) + '%' : '--';
+                // 只有在"数据版本变化"时才清空 KDJ / 建议 / 原因；
+                // 否则保留原有计算结果，避免刷新时闪一下。
+                if (oldVer !== ver) {
+                    tds[7].innerHTML = '<span class="muted">--</span>';  // J(日)
+                    tds[8].innerHTML = '<span class="muted">--</span>';  // 阶段
+                    tds[9].innerHTML = '<span class="muted">...</span>'; // 建议
+                    tds[10].innerHTML = '<span class="muted">--</span>'; // 原因
+                }
+                tds[11].textContent = f.GZTIME || '--';
+            }
+            fundBody.appendChild(trExisting);
+        } else {
+            tr.setAttribute('data-code', code);
+            tr.setAttribute('data-ver', ver);
+            tr.innerHTML = `<td>${code || '--'}</td><td>${(f.SHORTNAME || '--').slice(0, 12)}</td><td data-spark-intraday></td><td data-spark-nav-d></td><td data-spark-nav-w></td><td>${f.GSZ != null ? f.GSZ : '--'}</td><td class="${cls}">${chg != null ? chg.toFixed(2) + '%' : '--'}</td><td data-kdjj-d><span class="muted">--</span></td><td data-phase><span class="muted">--</span></td><td data-advice><span class="muted">...</span></td><td data-reason><span class="muted">--</span></td><td>${f.GZTIME || '--'}</td>`;
+        fundBody.appendChild(tr);
+        }
+    }
+    const specialBody = document.querySelector('#specialTable tbody');
+    const oldSpecialRows = {};
+    for (const tr of specialBody.querySelectorAll('tr[data-code]')) {
+        const c = tr.getAttribute('data-code');
+        if (c) oldSpecialRows[c] = tr;
+    }
+    specialBody.innerHTML = '';
+    for (const f of specialData) {
+        const chg = f.LAST_CHG != null ? parseFloat(f.LAST_CHG) : null;
+        const cls = chg == null ? '' : (chg > 0 ? 'positive' : (chg < 0 ? 'negative' : ''));
+        const date = f.GZTIME || '--';
+        const ver = `${date}_${chg != null ? chg : ''}`;
+        const code = f.FCODE || '';
+        let trExisting = oldSpecialRows[code];
+        if (trExisting) {
+            const oldVer = trExisting.getAttribute('data-ver') || '';
+            trExisting.setAttribute('data-code', code);
+            trExisting.setAttribute('data-ver', ver);
+            const tds = trExisting.children;
+            if (tds.length >= 8) {
+                tds[0].textContent = code || '--';
+                tds[1].textContent = (f.SHORTNAME || '--').slice(0, 12);
+                tds[2].className = `chg ${cls}`;
+                tds[2].textContent = chg != null ? chg.toFixed(2) + '%' : '--';
+                if (oldVer !== ver) {
+                    tds[3].innerHTML = '<span class="muted">--</span>';  // J(日)
+                    tds[4].innerHTML = '<span class="muted">--</span>';  // 阶段
+                    tds[5].innerHTML = '<span class="muted">...</span>'; // 建议
+                    tds[6].innerHTML = '<span class="muted">--</span>';  // 原因
+                }
+                tds[7].textContent = date;
+            }
+            specialBody.appendChild(trExisting);
+        } else {
+            specialBody.innerHTML += `<tr data-code="${code}" data-ver="${ver}"><td>${code || '--'}</td><td>${(f.SHORTNAME || '--').slice(0, 12)}</td><td class="chg ${cls}">${chg != null ? chg.toFixed(2) + '%' : '--'}</td><td data-kdjj-d><span class="muted">--</span></td><td data-phase><span class="muted">--</span></td><td data-advice><span class="muted">...</span></td><td data-reason><span class="muted">--</span></td><td>${date}</td></tr>`;
+        }
+    }
+}
+async function loadData() {
+    if (isLoading) return; // 上一次刷新尚未完成，忽略本次点击
+    isLoading = true;
+    const btn = document.getElementById('refreshBtn');
+    const oldLabel = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '刷新中...';
+    }
+    try {
+        const keyInput = document.getElementById('keyInput');
+        const key = keyInput ? keyInput.value.trim() : '';
+        // 如果viewMode是'all'，即使有密钥也不过滤
+        const useKey = (key && viewMode === 'self' && currentValidKey === key) ? key : '';
+        const url = '/api/funds?mode=' + encodeURIComponent(dataSourceMode || 'auto') + (useKey ? '&key=' + encodeURIComponent(useKey) : '');
+        const res = await fetch(url);
+        const fresh = await res.json();
+        // 如果密钥改变了，完全替换 rawData（因为密钥分组可能不同）
+        const keyChanged = key !== lastKey;
+        if (keyChanged) {
+            lastKey = key;
+            rawData = Array.isArray(fresh) ? fresh : [];
+        } else {
+            // 若已有数据，则"增量更新"：新数据按代码覆盖旧数据；
+            // 若基金列表发生变化（有新增/删除），则直接用 fresh 覆盖。
+            if (Array.isArray(rawData) && rawData.length > 0 && Array.isArray(fresh) && fresh.length > 0) {
+            const freshCodes = new Set(fresh.map(f => f && f.FCODE).filter(Boolean));
+            let needReplace = false;
+            if (rawData.length !== fresh.length) {
+                needReplace = true;
+            } else {
+                for (const f of rawData) {
+                    const c = f && f.FCODE;
+                    if (c && !freshCodes.has(c)) {
+                        needReplace = true;
+                        break;
+                    }
+                }
+            }
+            if (needReplace) {
+                rawData = fresh;
+            } else {
+                const mergedMap = {};
+                for (const f of rawData) {
+                    if (f && f.FCODE) mergedMap[f.FCODE] = f;
+                }
+                for (const f of fresh) {
+                    if (f && f.FCODE) mergedMap[f.FCODE] = f;
+                }
+                rawData = Object.values(mergedMap);
+            }
+            } else if (Array.isArray(fresh)) {
+                // 首次加载或之前没有数据，直接用新数据
+                rawData = fresh;
+            } else {
+                // 异常情况下保持旧数据不变
+            }
+        }
+        renderTables();
+        document.getElementById('updateTime').textContent = '最后刷新：' + new Date().toLocaleString();
+        fillSparklines('#fundTable');
+        fillSparklines('#specialTable');
+        window.__ADVICE__ = {};
+        try {
+            // 只对当前 rawData 中涉及的基金计算建议（支持密钥过滤后的子集）
+            const codes = Array.isArray(rawData)
+                ? rawData.map(f => f && f.FCODE).filter(Boolean)
+                : [];
+            const advUrl = codes.length
+                ? '/api/advice?codes=' + encodeURIComponent(codes.join(','))
+                : '/api/advice';
+            const advRes = await fetch(advUrl);
+            window.__ADVICE__ = await advRes.json();
+        } catch (e) {}
+        renderAdviceCells('#fundTable');
+        renderAdviceCells('#specialTable');
+        // 刷新指数栏
+        loadIndexStrip();
+    } catch (e) {
+        // 网络异常时给出提示，但不让多次快速点击堆积请求
+        alert('加载数据失败：' + e);
+    } finally {
+        isLoading = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = oldLabel || '刷新数据';
+        }
+        // 若加载过程中用户切换了接口，则在本轮完成后再自动刷新一次，确保使用最新接口的数据
+        if (pendingReload) {
+            pendingReload = false;
+            loadData();
+        }
+    }
+}
+function renderAdviceCells(tableSelector) {
+    const rows = document.querySelectorAll(tableSelector + ' tbody tr[data-code]');
+    for (const tr of rows) {
+        const code = tr.getAttribute('data-code');
+        const cell = tr.querySelector('td[data-advice]');
+        const cellJd = tr.querySelector('td[data-kdjj-d]');
+        const cellPhase = tr.querySelector('td[data-phase]');
+        const cellReason = tr.querySelector('td[data-reason]');
+        if (!cell) continue;
+        const adv = (window.__ADVICE__ || {})[code];
+        if (!adv || !adv.action) {
+            if(cell) cell.innerHTML = '<span class="muted">--</span>';
+            if(cellJd) cellJd.innerHTML = '<span class="muted">--</span>';
+            if(cellPhase) cellPhase.innerHTML = '<span class="muted">--</span>';
+            if(cellReason) cellReason.innerHTML = '<span class="muted">--</span>';
+            continue;
+        }
+        if (cellJd) {
+            const j = adv.metrics && adv.metrics.j_daily_3m;
+            cellJd.innerHTML = (j == null || isNaN(parseFloat(j))) ? '<span class="muted">--</span>' : (parseFloat(j).toFixed(2));
+        }
+        if (cellPhase) {
+            const phase = adv.metrics && adv.metrics.phase;
+            cellPhase.innerHTML = phase ? `<span>${phase}</span>` : '<span class="muted">--</span>';
+        }
+        const reasonsArr = adv.reasons || [];
+        const reasons = reasonsArr.join('；');
+        // 建议：多空分行显示，并用分隔符区分
+        const holdAct = adv.metrics && adv.metrics.hold_action;
+        const flatAct = adv.metrics && adv.metrics.flat_action;
+        let advHtml = '';
+        if (holdAct) advHtml += `<div>持仓：${holdAct}</div>`;
+        if (holdAct && flatAct) advHtml += `<div class="muted">————</div>`;
+        if (flatAct) advHtml += `<div>空仓：${flatAct}</div>`;
+        if (!advHtml) advHtml = `<span>${adv.action}</span>`;
+        // 认为包含以下关键词的动作为“买入/加仓类”：买入 / 低吸 / 加仓 / 建仓 / 布局
+        const buyKeywords = ['买入', '低吸', '加仓', '建仓', '布局'];
+        const actStr = [holdAct || '', flatAct || ''].join(' ');
+        const isBuy = buyKeywords.some(k => actStr.indexOf(k) !== -1);
+        const clsAdvice = isBuy ? 'advice-buy' : '';
+        cell.innerHTML = `<div class="${clsAdvice}" title="${reasons.replace(/"/g,'&quot;')}">${advHtml}</div>`;
+        if (cellReason) {
+            const holdReasons = (adv.metrics && adv.metrics.hold_reasons) || [];
+            const flatReasons = (adv.metrics && adv.metrics.flat_reasons) || [];
+            const holdLine = holdReasons.length ? '持仓：' + holdReasons.join('；') : '';
+            const flatLine = flatReasons.length ? '空仓：' + flatReasons.join('；') : '';
+            let reasonHtml = '';
+            if (holdLine) reasonHtml += `<div>${holdLine}</div>`;
+            if (holdLine && flatLine) reasonHtml += `<div class="muted">————</div>`;
+            if (flatLine) reasonHtml += `<div>${flatLine}</div>`;
+            const title = [holdLine, flatLine].filter(Boolean).join(' / ') || reasons;
+            cellReason.innerHTML = reasonHtml
+                ? `<div title="${title.replace(/"/g,'&quot;')}">${reasonHtml}</div>`
+                : '<span class="muted">--</span>';
+        }
+    }
+}
+document.getElementById('refreshBtn').addEventListener('click', () => { loadData(); });
+// 自定义下拉组件
+(function() {
+    const wrapper = document.getElementById('sourceSelectWrapper');
+    const btn = document.getElementById('sourceSelectBtn');
+    const dropdown = document.getElementById('sourceSelectDropdown');
+    const select = document.getElementById('sourceSelect');
+    const options = dropdown.querySelectorAll('.custom-select-option');
+
+    if (!wrapper || !btn || !dropdown || !select) return;
+
+    // 点击按钮切换下拉菜单
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.contains('show');
+        if (isOpen) {
+            dropdown.classList.remove('show');
+            btn.classList.remove('active');
+        } else {
+            dropdown.classList.add('show');
+            btn.classList.add('active');
+        }
+    });
+
+    // 点击选项
+    options.forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const value = option.getAttribute('data-value');
+            const text = option.textContent;
+
+            // 更新选中状态
+            options.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+
+            // 更新按钮文本
+            btn.textContent = text;
+
+            // 更新隐藏的 select 元素
+            select.value = value;
+
+            // 触发 change 事件
+            select.dispatchEvent(new Event('change'));
+
+            // 关闭下拉菜单
+            dropdown.classList.remove('show');
+            btn.classList.remove('active');
+        });
+    });
+
+    // 点击外部关闭下拉菜单
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            dropdown.classList.remove('show');
+            btn.classList.remove('active');
+        }
+    });
+
+    // 键盘导航
+    btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            btn.click();
+        }
+    });
+
+    dropdown.addEventListener('keydown', (e) => {
+        const currentIndex = Array.from(options).findIndex(opt => opt.classList.contains('selected'));
+        let newIndex = currentIndex;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            newIndex = (currentIndex + 1) % options.length;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            newIndex = (currentIndex - 1 + options.length) % options.length;
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (currentIndex >= 0) {
+                options[currentIndex].click();
+            }
+            return;
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            dropdown.classList.remove('show');
+            btn.classList.remove('active');
+            return;
+        }
+
+        if (newIndex !== currentIndex) {
+            options.forEach(opt => opt.classList.remove('selected'));
+            options[newIndex].classList.add('selected');
+            options[newIndex].scrollIntoView({ block: 'nearest' });
+        }
+    });
+
+    // 初始化：从隐藏的 select 获取当前值
+    const currentValue = select.value || 'auto';
+    const currentOption = dropdown.querySelector(`[data-value="${currentValue}"]`);
+    if (currentOption) {
+        options.forEach(opt => opt.classList.remove('selected'));
+        currentOption.classList.add('selected');
+        btn.textContent = currentOption.textContent;
+    }
+})();
+const sourceSelect = document.getElementById('sourceSelect');
+if (sourceSelect) {
+    sourceSelect.addEventListener('change', () => {
+        const val = sourceSelect.value || 'auto';
+        dataSourceMode = val;
+        // 切换接口后重置排序状态，恢复为默认"按涨跌从高到低"
+        sortState.key = null;
+        sortState.asc = true;
+        if (isLoading) {
+            // 当前正在加载：标记为 pending，等本轮结束后自动再刷新一次
+            pendingReload = true;
+        } else {
+            loadData();
+        }
+    });
+}
+document.getElementById('search').addEventListener('input', renderTables);
+const keyInput = document.getElementById('keyInput');
+if (keyInput) {
+    keyInput.addEventListener('change', async () => {
+        const key = keyInput.value.trim();
+        // 验证密钥
+        const isValid = await validateKey(key);
+        if (isValid || key === '') {
+            // 密钥验证成功或清空，重置排序并刷新数据
+            sortState.key = null;
+            sortState.asc = true;
+            if (isLoading) {
+                pendingReload = true;
+            } else {
+                loadData();
+            }
+        } else {
+            // 验证失败，清空输入
+            keyInput.value = '';
+        }
+    });
+    // 支持回车键触发
+    keyInput.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            const key = keyInput.value.trim();
+            // 验证密钥
+            const isValid = await validateKey(key);
+            if (isValid || key === '') {
+                sortState.key = null;
+                sortState.asc = true;
+                if (isLoading) {
+                    pendingReload = true;
+                } else {
+                    loadData();
+                }
+            } else {
+                keyInput.value = '';
+            }
+        }
+    });
+}
+// 删除密钥按钮
+document.getElementById('keyDeleteBtn').addEventListener('click', async () => {
+    if (!currentValidKey) return;
+    const confirmed = await customConfirm('确定要删除当前密钥吗？这将从系统中永久删除该密钥及其所有基金代码。', '确认删除密钥');
+    if (confirmed) {
+        try {
+            // 从后端删除密钥分组（传入空列表会删除该密钥）
+            const res = await fetch('/api/fund_groups', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: currentValidKey, codes: [] }),
+            });
+            const data = await res.json();
+
+            // 清空密钥输入框
+            const keyInput = document.getElementById('keyInput');
+            if (keyInput) keyInput.value = '';
+            // 清除验证状态
+            const keyToDelete = currentValidKey;
+            currentValidKey = '';
+            localStorage.removeItem('fundMonitorValidKey');
+            // 隐藏相关按钮
+            const manageBtn = document.getElementById('manageFundsBtn');
+            const toggleBtn = document.getElementById('viewToggleBtn');
+            const deleteBtn = document.getElementById('keyDeleteBtn');
+            if (manageBtn) manageBtn.classList.remove('show');
+            if (toggleBtn) toggleBtn.classList.remove('show');
+            if (deleteBtn) deleteBtn.classList.remove('show');
+            // 重新加载数据（显示全部）
+            sortState.key = null;
+            sortState.asc = true;
+            if (isLoading) {
+                pendingReload = true;
+            } else {
+                loadData();
+            }
+            customAlert('密钥"' + keyToDelete + '"已成功删除');
+        } catch (e) {
+            customAlert('删除密钥失败：' + e);
+        }
+    }
+});
+document.getElementById('manageFundsBtn').addEventListener('click', () => { openFundManageModal(); });
+// 切换看自己/看全部按钮
+document.getElementById('viewToggleBtn').addEventListener('click', () => {
+    if (viewMode === 'self') {
+        viewMode = 'all';
+        document.getElementById('viewToggleBtn').textContent = '看自己';
+    } else {
+        viewMode = 'self';
+        document.getElementById('viewToggleBtn').textContent = '看全部';
+    }
+    // 重新加载数据
+    sortState.key = null;
+    sortState.asc = true;
+    if (isLoading) {
+        pendingReload = true;
+    } else {
+        loadData();
+    }
+});
+document.getElementById('closeFundManageBtn').addEventListener('click', () => { closeFundManageModal(); });
+document.getElementById('cancelFundListBtn').addEventListener('click', () => { closeFundManageModal(); });
+let isAddingFund = false; // 防止重复点击添加按钮
+document.getElementById('addFundBtn').addEventListener('click', async () => {
+    // 防止重复点击
+    if (isAddingFund) return;
+
+    const input = document.getElementById('newFundInput');
+    const addBtn = document.getElementById('addFundBtn');
+    if (!input || !addBtn) return;
+
+    const code = input.value.trim();
+    if (!/^\d{6}$/.test(code)) {
+        customAlert('请输入6位基金代码');
+        return;
+    }
+
+    // 验证密钥（从localStorage或输入框获取）
+    const storedKey = localStorage.getItem('fundMonitorValidKey');
+    const keyInput = document.getElementById('keyInput');
+    const inputKey = keyInput ? keyInput.value.trim() : '';
+    const key = storedKey || inputKey;
+    if (!key || key !== currentValidKey) {
+        customAlert('请先输入并验证密钥');
+        return;
+    }
+
+    // 检查是否已经在当前密钥分组中
+    const listBody = document.getElementById('fundManageList');
+    let alreadyExists = false;
+    if (listBody) {
+        for (const tr of listBody.querySelectorAll('tr')) {
+            const existingCode = tr.querySelector('td')?.textContent?.trim();
+            if (existingCode === code) {
+                alreadyExists = true;
+                break;
+            }
+        }
+    }
+    if (alreadyExists) {
+        customAlert('该基金已在列表中');
+        input.value = '';
+        return;
+    }
+
+    // 设置loading状态
+    isAddingFund = true;
+    const oldBtnText = addBtn.textContent;
+    addBtn.disabled = true;
+    addBtn.textContent = '添加中...';
+
+    try {
+        // 立即更新UI（乐观更新）
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${code}</td><td>--</td><td><span class="tag-del" data-code="${code}">删除</span></td>`;
+        if (listBody) {
+            listBody.appendChild(tr);
+        }
+        input.value = '';
+
+        // 异步更新后端（不阻塞UI）
+        // 检查全部基金列表中是否有该基金
+        const allCodesRes = await fetch('/api/fund_codes');
+        const allCodes = await allCodesRes.json();
+        const needsAddToAll = !allCodes.includes(code);
+
+        // 如果全部基金列表中没有，添加到全部基金列表
+        if (needsAddToAll) {
+            const newAllCodes = [...allCodes, code];
+            await fetch('/api/fund_codes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codes: newAllCodes }),
+            });
+        }
+
+        // 更新密钥分组（添加到当前密钥分组）
+        const groupRes = await fetch('/api/fund_groups?key=' + encodeURIComponent(key));
+        const currentCodes = await groupRes.json();
+        if (Array.isArray(currentCodes) && !currentCodes.includes(code)) {
+            const newCodes = [...currentCodes, code];
+            await fetch('/api/fund_groups', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: key, codes: newCodes }),
+            });
+        }
+    } catch (e) {
+        // 如果失败，从列表中移除刚添加的行
+        if (listBody) {
+            const rows = listBody.querySelectorAll('tr');
+            for (const row of rows) {
+                const firstTd = row.querySelector('td:first-child');
+                if (firstTd && firstTd.textContent.trim() === code) {
+                    row.remove();
+                    break;
+                }
+            }
+        }
+        customAlert('添加基金失败：' + e);
+    } finally {
+        // 恢复按钮状态
+        isAddingFund = false;
+        addBtn.disabled = false;
+        addBtn.textContent = oldBtnText;
+    }
+});
+document.getElementById('fundManageList').addEventListener('click', async (e) => {
+    const target = e.target;
+    if (target && target.classList && target.classList.contains('tag-del')) {
+        const code = target.getAttribute('data-code');
+        if (!code) return;
+        // 验证密钥（从localStorage或输入框获取）
+        const storedKey = localStorage.getItem('fundMonitorValidKey');
+        const keyInput = document.getElementById('keyInput');
+        const inputKey = keyInput ? keyInput.value.trim() : '';
+        const key = storedKey || inputKey;
+        if (!key || key !== currentValidKey) {
+            customAlert('请先输入并验证密钥');
+            return;
+        }
+        // 从当前密钥分组中删除
+        const tr = target.closest('tr');
+        if (tr) tr.remove();
+    }
+});
+document.getElementById('saveFundListBtn').addEventListener('click', async () => {
+    // 验证密钥（从localStorage或输入框获取）
+    const storedKey = localStorage.getItem('fundMonitorValidKey');
+    const keyInput = document.getElementById('keyInput');
+    const inputKey = keyInput ? keyInput.value.trim() : '';
+    const key = storedKey || inputKey;
+    if (!key || key !== currentValidKey) {
+        customAlert('请先输入并验证密钥');
+        return;
+    }
+    // 获取当前显示的基金代码列表
+    const codes = [];
+    document.querySelectorAll('#fundManageList tr').forEach(tr => {
+        const code = tr.querySelector('td')?.textContent?.trim();
+        if (code && /^\d{6}$/.test(code)) {
+            codes.push(code);
+        }
+    });
+    if (!codes.length) {
+        customAlert('基金列表不能为空');
+        return;
+    }
+    try {
+        // 更新密钥分组
+        const groupRes = await fetch('/api/fund_groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: key, codes: codes }),
+        });
+        const groupData = await groupRes.json();
+        if (!groupData || !Array.isArray(groupData.codes)) {
+            customAlert('更新密钥分组失败');
+            return;
+        }
+        // 检查其他密钥分组，决定是否从全部基金列表中删除
+        const allGroupsRes = await fetch('/api/fund_groups');
+        const allGroups = await allGroupsRes.json();
+        const allGroupCodes = new Set();
+        for (const k in allGroups) {
+            if (k !== key && Array.isArray(allGroups[k])) {
+                allGroups[k].forEach(c => allGroupCodes.add(c));
+            }
+        }
+        // 获取当前全部基金列表
+        const allCodesRes = await fetch('/api/fund_codes');
+        const allCodes = await allCodesRes.json();
+        // 从全部基金列表中删除不在任何密钥分组中的基金
+        const codesToKeep = new Set(codes);
+        allGroupCodes.forEach(c => codesToKeep.add(c));
+        const newAllCodes = allCodes.filter(c => codesToKeep.has(c));
+        // 更新全部基金列表
+        const allCodesUpdateRes = await fetch('/api/fund_codes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codes: newAllCodes }),
+        });
+        const allCodesUpdateData = await allCodesUpdateRes.json();
+        if (allCodesUpdateData && Array.isArray(allCodesUpdateData.codes)) {
+            closeFundManageModal();
+            customAlert('基金列表已更新，共 ' + codes.length + ' 只。');
+            loadData();
+        } else {
+            customAlert('更新全部基金列表失败');
+        }
+    } catch (e) {
+        customAlert('基金列表更新失败：' + e);
+    }
+});
+for (const th of document.querySelectorAll('th[data-key]')) {
+    th.addEventListener('click', () => {
+        const key = th.getAttribute('data-key');
+        if (sortState.key === key) { sortState.asc = !sortState.asc; }
+        else { sortState.key = key; sortState.asc = true; }
+        renderTables();
+    });
+}
+    // 页面加载时，从localStorage恢复密钥
+    const storedKey = localStorage.getItem('fundMonitorValidKey');
+    if (storedKey) {
+        const keyInput = document.getElementById('keyInput');
+        if (keyInput) {
+            keyInput.value = storedKey;
+            validateKey(storedKey).then(() => {
+                loadFundCodes().then(() => {});
+loadData();
+                loadIndexStrip();
+            });
+        } else {
+            loadFundCodes().then(() => {});
+            loadData();
+            loadIndexStrip();
+        }
+    } else {
+        loadFundCodes().then(() => {});
+        loadData();
+        loadIndexStrip();
+    }
+    // 每5分钟自动刷新一次数据和指数（休市日不刷新）
+    setInterval(() => {
+        if (!isMarketClosed()) {
+            loadData();
+            loadIndexStrip();
+        }
+    }, 5 * 60 * 1000);
+</script>
+    <div id="customAlertBackdrop" class="custom-alert-backdrop">
+        <div class="custom-alert-box">
+            <div class="custom-alert-title" id="customAlertTitle">提示</div>
+            <div class="custom-alert-message" id="customAlertMessage"></div>
+            <button class="custom-alert-button" id="customAlertButton">确定</button>
+            <div style="clear:both;"></div>
+        </div>
+    </div>
+</body>
+</html>
