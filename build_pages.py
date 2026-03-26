@@ -98,89 +98,171 @@ def _start_fund_server(port: int) -> threading.Thread:
 
 
 def _inject_fetch_mock(html: str, *, fund_codes: list[Any], funds: list[dict[str, Any]], index: list[dict[str, Any]]) -> str:
-    # 注意：注入位置选择第一个 <script>，确保 window.fetch 在应用 JS 执行前就替换完成。
-    # mock 逻辑：对 /api/* 的请求返回静态 JSON；sparkline 返回占位 points。
     marker = "__PXF_FETCH_MOCK__"
 
     fund_codes_json = json.dumps(fund_codes, ensure_ascii=False)
     funds_json = json.dumps(funds, ensure_ascii=False)
     index_json = json.dumps(index, ensure_ascii=False)
 
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    live_fetch_path = os.path.join(repo_root, "live_fetch.js")
+    with open(live_fetch_path, "r", encoding="utf-8") as f:
+        live_fetch_js = f.read()
+
+    # 拦截器策略：实时获取优先，静态数据兜底
+    # 首屏（第一次 loadData）用静态数据保证快速渲染，后续刷新走实时外部 API
     mock_js = f"""
+<script>
+{live_fetch_js}
+</script>
 <script>
 (function() {{
   window.{marker} = true;
-  const API = {{
-    "/api/fund_codes": {fund_codes_json},
-    "/api/funds?mode=auto": {funds_json},
-    "/api/index": {index_json}
+  var STATIC = {{
+    fund_codes: {fund_codes_json},
+    funds: {funds_json},
+    index: {index_json}
   }};
+  var _firstFundsLoad = true;
+  var _firstIndexLoad = true;
 
-  const ORIG_FETCH = window.fetch ? window.fetch.bind(window) : null;
-
-  function normPathAndQuery(url) {{
-    try {{
-      // url 可能是相对路径 /api/xxx?...
-      if (typeof url === "string" && url.startsWith("http")) {{
-        const u = new URL(url);
-        return u.pathname + (u.search || "");
-      }}
-      if (typeof url === "string") {{
-        const q = url.indexOf("?");
-        if (q >= 0) return url.slice(0, q) + url.slice(q); // keep ?...
-        return url;
-      }}
-    }} catch (e) {{}}
-    return String(url);
+  function jsonResp(data) {{
+    return new Response(JSON.stringify(data), {{
+      headers: {{"Content-Type":"application/json; charset=utf-8"}}
+    }});
   }}
 
+  function parsePath(input) {{
+    var url = (typeof input === "string") ? input : (input && input.url ? input.url : String(input));
+    var pathOnly = url;
+    var full = url;
+    try {{
+      if (url.startsWith("http")) {{
+        var u = new URL(url);
+        pathOnly = u.pathname;
+        full = u.pathname + (u.search || "");
+      }} else {{
+        var q = url.indexOf("?");
+        pathOnly = q >= 0 ? url.slice(0, q) : url;
+        full = url;
+      }}
+    }} catch(e) {{}}
+    return {{ pathOnly: pathOnly, full: full }};
+  }}
+
+  function parseQS(full) {{
+    var q = full.indexOf("?");
+    if (q < 0) return {{}};
+    var obj = {{}};
+    full.slice(q+1).split("&").forEach(function(p) {{
+      var kv = p.split("=");
+      obj[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||"");
+    }});
+    return obj;
+  }}
+
+  var LF = window.__liveFetch;
+
   window.fetch = async function(input, init) {{
-    const url = (typeof input === "string") ? input : (input && input.url ? input.url : String(input));
-    const full = normPathAndQuery(url);
-    const pathOnly = (typeof url === "string") ? url.split("?")[0] : String(url);
+    var p = parsePath(input);
+    var pathOnly = p.pathOnly;
+    var full = p.full;
+    var qs = parseQS(full);
 
-    // 关键接口：用于首屏渲染
+    // /api/fund_codes — 纯配置，始终用静态
     if (pathOnly === "/api/fund_codes") {{
-      return new Response(JSON.stringify(API["/api/fund_codes"]), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
+      return jsonResp(STATIC.fund_codes);
     }}
-    if (full === "/api/funds?mode=auto" || full === "/api/funds") {{
-      return new Response(JSON.stringify(API["/api/funds?mode=auto"]), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
+
+    // /api/funds — 核心：首次用静态（快速首屏），后续用实时
+    if (pathOnly === "/api/funds") {{
+      if (_firstFundsLoad) {{
+        _firstFundsLoad = false;
+        return jsonResp(STATIC.funds);
+      }}
+      if (LF) {{
+        try {{
+          var liveData = await LF.fetchFundsLive(STATIC.fund_codes, qs.mode || "auto");
+          if (liveData && liveData.length > 0) return jsonResp(liveData);
+        }} catch(e) {{ console.warn("[live_fetch] funds failed, fallback to static:", e); }}
+      }}
+      return jsonResp(STATIC.funds);
     }}
+
+    // /api/index — 首次静态，后续实时
     if (pathOnly === "/api/index") {{
-      return new Response(JSON.stringify(API["/api/index"]), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
+      if (_firstIndexLoad) {{
+        _firstIndexLoad = false;
+        return jsonResp(STATIC.index);
+      }}
+      if (LF) {{
+        try {{
+          var liveIdx = await LF.fetchIndexLive();
+          if (liveIdx && liveIdx.length > 0) return jsonResp(liveIdx);
+        }} catch(e) {{ console.warn("[live_fetch] index failed, fallback to static:", e); }}
+      }}
+      return jsonResp(STATIC.index);
     }}
 
-    // advice：MVP 先返回空对象，保证页面不崩溃
+    // /api/sparkline/* — 实时获取净值趋势
+    if (pathOnly === "/api/sparkline/nav" || pathOnly === "/api/sparkline/intraday") {{
+      if (LF && qs.code) {{
+        try {{
+          var sp = await LF.fetchSparklineNav(qs.code, parseInt(qs.points)||60);
+          if (sp) return jsonResp(sp);
+        }} catch(e) {{}}
+      }}
+      return jsonResp({{ points: [1, 2] }});
+    }}
+    if (pathOnly === "/api/sparkline/nav/daily") {{
+      if (LF && qs.code) {{
+        try {{
+          var spd = await LF.fetchSparklineDaily3M(qs.code, parseInt(qs.points)||60);
+          if (spd) return jsonResp(spd);
+        }} catch(e) {{}}
+      }}
+      return jsonResp({{ points: [1, 2] }});
+    }}
+    if (pathOnly === "/api/sparkline/nav/weekly") {{
+      if (LF && qs.code) {{
+        try {{
+          var spw = await LF.fetchSparklineWeekly1Y(qs.code, parseInt(qs.points)||60);
+          if (spw) return jsonResp(spw);
+        }} catch(e) {{}}
+      }}
+      return jsonResp({{ points: [1, 2] }});
+    }}
+
+    // /api/kdj — 实时计算
+    if (pathOnly === "/api/kdj") {{
+      if (LF && qs.code) {{
+        try {{
+          var kdjData = await LF.fetchKDJ(qs.code);
+          if (kdjData) return jsonResp(kdjData);
+        }} catch(e) {{}}
+      }}
+      return jsonResp({{}});
+    }}
+
+    // /api/advice — 暂无外部源，返回空
     if (pathOnly === "/api/advice" || pathOnly === "/api/advice/") {{
-      return new Response(JSON.stringify({{}}), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
+      return jsonResp({{}});
     }}
 
-    // 页面 sparkline：返回占位 points（>=2 即可绘制 svg）
-    if (pathOnly === "/api/sparkline/intraday" ||
-        pathOnly === "/api/sparkline/nav/daily" ||
-        pathOnly === "/api/sparkline/nav/weekly") {{
-      return new Response(JSON.stringify({{ points: [1, 2] }}), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
-    }}
+    // /api/fund_groups, /api/log 等静态/内部接口
+    if (pathOnly === "/api/fund_groups") return jsonResp([]);
+    if (pathOnly === "/api/log") return jsonResp({{}});
 
-    // 其他接口：尽量返回空结构
-    if (pathOnly === "/api/fund_groups" || pathOnly === "/api/kdj") {{
-      return new Response(JSON.stringify([]), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
-    }}
-    if (pathOnly === "/api/log") {{
-      return new Response(JSON.stringify({{}}), {{ headers: {{"Content-Type":"application/json; charset=utf-8"}} }});
-    }}
+    // 未命中的 /api/* 返回空对象
+    if (pathOnly.startsWith("/api/")) return jsonResp({{}});
 
-    // 未命中：走原始 fetch（如果有）
-    if (ORIG_FETCH) return ORIG_FETCH(input, init);
-    throw new Error("PXF fetch mock: no handler for " + url);
+    throw new Error("PXF: no handler for " + full);
   }};
 }})();
 </script>
 """.strip()
 
-    # 只替换第一个 <script>，避免把其他脚本打乱
-    # fund_monitor.py 的 HTML 中应用 JS 是从第一个 <script> 开始。
-    out, n = re.subn(r"<script>", mock_js + "<script>", html, count=1)
+    out, n = re.subn(r"<script>", mock_js + "\n<script>", html, count=1)
     if n != 1:
         raise RuntimeError("Failed to inject fetch mock: cannot find <script> tag")
     if marker not in out:

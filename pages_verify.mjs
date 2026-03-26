@@ -24,9 +24,9 @@ await (async () => {
   page.on("console", (msg) => consoleLines.push(`[console] ${msg.type()}: ${msg.text()}`));
   page.on("pageerror", (err) => consoleLines.push(`[pageerror] ${err.message}`));
 
+  // === Phase 1: Initial page load ===
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
-  // 断言点（尽量鲁棒）：页面标题/标题栏 + fund 表格行数 > 0 + 至少有 sparkline svg
   const h1 = page.locator("h1");
   await h1.first().waitFor({ timeout: 30000 });
   const h1Text = (await h1.first().innerText()).trim();
@@ -35,27 +35,60 @@ await (async () => {
   }
 
   const rows = page.locator("#fundTable tbody tr");
-  const count = await rows.count();
-  if (count < 1) {
-    throw new Error(`Expected fund table rows >= 1, got ${count}`);
+  const initialCount = await rows.count();
+  if (initialCount < 1) {
+    throw new Error(`Expected fund table rows >= 1, got ${initialCount}`);
   }
 
-  // sparkline mock points >=2，会渲染 svg
+  // === Phase 2: Click refresh and verify live network requests ===
+  const externalRequests = [];
+  const liveApiPatterns = [
+    "fundmobapi.eastmoney.com",
+    "fundgz.1234567.com.cn",
+    "push2.eastmoney.com",
+    "fund.eastmoney.com/pingzhongdata",
+  ];
+
+  page.on("request", (req) => {
+    const reqUrl = req.url();
+    if (liveApiPatterns.some((p) => reqUrl.includes(p))) {
+      externalRequests.push(reqUrl);
+    }
+  });
+
+  const refreshBtn = page.locator("#refreshBtn");
+  if ((await refreshBtn.count()) > 0) {
+    await refreshBtn.click();
+    // Wait for external API requests to fire (up to 20s)
+    const start = Date.now();
+    while (externalRequests.length === 0 && Date.now() - start < 20000) {
+      await page.waitForTimeout(500);
+    }
+    // Wait a bit more for rendering to complete
+    await page.waitForTimeout(3000);
+  }
+
+  const afterCount = await rows.count();
+  consoleLines.push(`[verify] initial rows: ${initialCount}, after refresh rows: ${afterCount}`);
+  consoleLines.push(`[verify] external API requests captured: ${externalRequests.length}`);
+  externalRequests.slice(0, 10).forEach((u) => consoleLines.push(`  -> ${u.slice(0, 120)}`));
+
+  if (externalRequests.length === 0) {
+    consoleLines.push("[WARN] No external API requests detected after refresh click");
+  }
+
+  // sparkline SVGs
   const svgs = page.locator("#fundTable svg");
   const svgCount = await svgs.count();
   if (svgCount < 1) {
-    // 不强制，但通常应该至少有 svg
     consoleLines.push(`[warn] expected sparkline svg >= 1, got ${svgCount}`);
   }
 
   await page.screenshot({ path: screenshotPath, fullPage: true });
   const html = await page.content();
   fs.writeFileSync(htmlPath, html, "utf-8");
-
-  fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(consoleLogPath, consoleLines.join("\n"), "utf-8");
 
   await browser.close();
-  console.log("OK:", { url, screenshotPath, htmlPath, consoleLogPath });
+  console.log("OK:", { url, screenshotPath, htmlPath, consoleLogPath, externalApiHits: externalRequests.length });
 })();
-
