@@ -33,7 +33,7 @@
             <div v-for="code in managedCodes" :key="code" class="fund-item">
               <div class="fund-info">
                 <span class="fund-code">{{ code }}</span>
-                <span class="fund-name">{{ fundNames[code] || '--' }}</span>
+                <span class="fund-name">{{ props.fundNameMap[code] || '--' }}</span>
               </div>
               <button class="del-btn" @click="removeFund(code)">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -65,7 +65,8 @@ import { ref, watch, onMounted } from 'vue'
 import { getFileContent, updateFile } from '../api/github'
 
 const props = defineProps({
-  keyValue: { type: String, required: true }
+  keyValue: { type: String, required: true },
+  fundNameMap: { type: Object, default: () => ({}) }
 })
 
 const emit = defineEmits(['close', 'saved'])
@@ -75,7 +76,6 @@ const newCode = ref('')
 const adding = ref(false)
 const saving = ref(false)
 const managedCodes = ref([])
-const fundNames = ref({})
 
 // GitHub API 相关
 const groupsSha = ref('')
@@ -90,16 +90,12 @@ async function loadGroupCodes() {
     fundGroups.value = groups.content
     groupsSha.value = groups.sha
     managedCodes.value = groups.content[props.keyValue] || []
-
-    // 加载基金名称
-    await loadFundNames()
   } catch (e) {
     console.error('加载分组失败:', e)
     // 回退到本地加载
     const res = await fetch('/fund/config/fund_groups.json?t=' + Date.now())
     const groups = await res.json()
     managedCodes.value = groups[props.keyValue] || []
-    await loadFundNames()
   }
 }
 
@@ -115,37 +111,12 @@ async function loadAllConfig() {
     fundGroups.value = groups.content
     groupsSha.value = groups.sha
     managedCodes.value = groups.content[props.keyValue] || []
-    await loadFundNames()
   } catch (e) {
     console.error('加载配置失败:', e)
   }
 }
 
 const fundGroups = ref({})
-
-// 加载基金名称
-async function loadFundNames() {
-  if (!managedCodes.value.length) return
-
-  try {
-    // 使用批量接口获取基金名称
-    const codes = managedCodes.value.join(',')
-    const url = `https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=Wap&Fcodes=${encodeURIComponent(codes)}`
-
-    const res = await fetch(url)
-    const data = await res.json()
-
-    if (data.Datas) {
-      data.Datas.forEach(item => {
-        if (item.FCODE && item.SHORTNAME) {
-          fundNames.value[item.FCODE] = item.SHORTNAME
-        }
-      })
-    }
-  } catch (e) {
-    console.error('加载基金名称失败:', e)
-  }
-}
 
 // 添加基金
 async function addFund() {
@@ -160,35 +131,8 @@ async function addFund() {
     return
   }
 
-  adding.value = true
-
-  try {
-    managedCodes.value.push(code)
-
-    // 获取新添加基金的名称
-    await loadSingleFundName(code)
-
-    newCode.value = ''
-  } finally {
-    adding.value = false
-  }
-}
-
-// 加载单个基金名称
-async function loadSingleFundName(code) {
-  try {
-    const url = `https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=Wap&Fcodes=${encodeURIComponent(code)}`
-
-    const res = await fetch(url)
-    const data = await res.json()
-
-    if (data.Datas && data.Datas[0]) {
-      fundNames.value[code] = data.Datas[0].SHORTNAME || '--'
-    }
-  } catch (e) {
-    console.error('加载基金名称失败:', e)
-    fundNames.value[code] = '--'
-  }
+  managedCodes.value.push(code)
+  newCode.value = ''
 }
 
 // 删除基金

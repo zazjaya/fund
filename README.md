@@ -232,6 +232,17 @@ npm run build
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
 
+### v2.0.2 (2026-03-27)
+
+**Bug 修复**
+- 修复管理基金列表获取名称时提示"网络繁忙"的问题
+- 改用基金数据缓存获取名称，避免额外的 API 请求
+
+**涉及文件**
+- `src/composables/useFunds.js` - 添加 fundNameMap 缓存
+- `src/App.vue` - 传递 fundNameMap 给 FundManageModal
+- `src/components/FundManageModal.vue` - 使用缓存的基金名称
+
 ### v2.0.1 (2026-03-27)
 
 **UI 风格改版**

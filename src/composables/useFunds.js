@@ -13,6 +13,7 @@ import { fetchFundsLive } from '../api/funds'
  *
  * @returns {Object} {
  *   funds,       // 基金列表响应式数据
+ *   fundNameMap, // 基金代码→名称映射缓存
  *   loading,     // 加载状态
  *   error,       // 错误信息
  *   lastUpdate,  // 最后更新时间
@@ -22,6 +23,8 @@ import { fetchFundsLive } from '../api/funds'
 export function useFunds() {
   // 基金列表数据
   const funds = ref([])
+  // 基金名称缓存：{ code: name }
+  const fundNameMap = ref({})
   // 加载状态
   const loading = ref(false)
   // 错误信息
@@ -46,6 +49,12 @@ export function useFunds() {
 
     try {
       funds.value = await fetchFundsLive(codes, mode)
+      // 更新名称缓存
+      funds.value.forEach(f => {
+        if (f.FCODE && f.SHORTNAME) {
+          fundNameMap.value[f.FCODE] = f.SHORTNAME
+        }
+      })
       lastUpdate.value = new Date()
     } catch (e) {
       error.value = e.message
@@ -57,6 +66,7 @@ export function useFunds() {
 
   return {
     funds,
+    fundNameMap,
     loading,
     error,
     lastUpdate,

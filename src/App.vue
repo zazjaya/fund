@@ -30,6 +30,7 @@
     <FundManageModal
       v-if="showManageModal"
       :key-value="validKey"
+      :fund-name-map="fundNameMap"
       @close="showManageModal = false"
       @saved="onFundSaved"
     />
@@ -62,7 +63,7 @@ const searchKeyword = ref('')
 
 // 组合式函数
 const { fundCodes, fundGroups, loadConfig } = useConfig()
-const { funds, loadFunds } = useFunds()
+const { funds, fundNameMap, loadFunds } = useFunds()
 const { indexData, loadIndex } = useIndex()
 const { adviceData, loadAdvice } = useAdvice()
 const { validateKey: authValidateKey } = useAuth()
