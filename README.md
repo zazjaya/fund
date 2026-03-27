@@ -238,11 +238,16 @@ npm run build
 - 修复管理基金列表获取名称时提示"网络繁忙"的问题
 - 修复 pingzhongdata 接口在生产环境 CORS 跨域问题（改用 script 标签加载）
 
+**优化**
+- 简化 fetchPingzhongdata 函数，仅返回净值趋势数据（基金名称使用缓存）
+
 **涉及文件**
 - `src/composables/useFunds.js` - 添加 fundNameMap 缓存
 - `src/App.vue` - 传递 fundNameMap 给 FundManageModal
 - `src/components/FundManageModal.vue` - 使用缓存的基金名称
 - `src/api/funds.js` - pingzhongdata 改用 script 标签加载
+- `src/composables/useKDJ.js` - 适配 fetchPingzhongdata 返回值变化
+- `src/composables/useAdvice.js` - 适配 fetchPingzhongdata 返回值变化
 
 ### v2.0.1 (2026-03-27)
 

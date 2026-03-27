@@ -18,7 +18,7 @@ export function useKDJ() {
     loading.value = true
 
     try {
-      const { name, trend } = await fetchPingzhongdata(code)
+      const trend = await fetchPingzhongdata(code)
 
       if (!trend || trend.length < 10) {
         return {}
@@ -48,7 +48,6 @@ export function useKDJ() {
 
       const result = {
         code,
-        name,
         j_daily: jDaily,
         j_weekly: jWeekly,
         weekly_close: allWeeklyCloses[allWeeklyCloses.length - 1],

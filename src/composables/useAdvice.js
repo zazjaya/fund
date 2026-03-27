@@ -23,10 +23,10 @@ export function useAdvice() {
    */
   async function getTradeAdvice(code, gszzl = null, hasPosition = true) {
     try {
-      const { name, trend } = await fetchPingzhongdata(code)
+      const trend = await fetchPingzhongdata(code)
 
       if (!trend || trend.length < 10) {
-        return { action: '观望', reasons: ['无法获取净值序列'], metrics: {}, name: name || '--' }
+        return { action: '观望', reasons: ['无法获取净值序列'], metrics: {} }
       }
 
       const closes = trend.map(it => it.y).filter(y => y != null)
@@ -76,18 +76,18 @@ export function useAdvice() {
         gszzl
       }
 
-      return buildAdvice(metrics, gszzl, hasPosition, name)
+      return buildAdvice(metrics, gszzl, hasPosition)
     } catch (e) {
       console.error('计算建议失败:', e)
-      return { action: '观望', reasons: ['计算错误'], metrics: {}, name: '--' }
+      return { action: '观望', reasons: ['计算错误'], metrics: {} }
     }
   }
 
   /**
    * 构建建议
    */
-  function buildAdvice(metrics, gszzl, hasPosition, name) {
-    const { ma30, ma60, latest, kdj_j, weekly_close, ma60_weekly, has_dead_cross, prev_high, breakout_prev_high, is_main_rise } = metrics
+  function buildAdvice(metrics, gszzl, hasPosition) {
+    const { ma30, ma60, latest, kdj_j, weekly_close, ma30_weekly, ma60_weekly, has_dead_cross, prev_high, breakout_prev_high, is_main_rise } = metrics
 
     const holdReasons = []
     const flatReasons = []
@@ -106,7 +106,7 @@ export function useAdvice() {
       holdReasons.push('周K跌破60日线：牛市结束')
       flatAction = '观望'
       flatReasons.push('周K跌破60日线：不进场')
-      return { action: '清仓', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+      return { action: '清仓', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
     }
 
     // 2. 止损规则：跌破30日线
@@ -116,7 +116,7 @@ export function useAdvice() {
       holdReasons.push('跌破30日均线：止损控风险')
       flatAction = '观望'
       flatReasons.push('跌破30日均线：不进场')
-      return { action: '减仓', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+      return { action: '减仓', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
     }
 
     // 3. 止盈规则
@@ -135,7 +135,7 @@ export function useAdvice() {
         holdAction = '持有'
         flatAction = '观望'
         flatReasons.push('已有涨幅：暂不追高')
-        return { action: '持有', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+        return { action: '持有', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
       }
     }
 
@@ -150,7 +150,7 @@ export function useAdvice() {
         holdReasons.push('跌破60线：持有等待')
         flatAction = '买入'
         flatReasons.push('周K60线上，日K跌破60线：短线买入')
-        return { action: '波段买入1', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+        return { action: '波段买入1', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
       }
 
       // 波段心法2
@@ -163,20 +163,20 @@ export function useAdvice() {
         if (kdj_j != null && kdj_j < 20) {
           flatReasons.push('J值低位，超跌反弹区')
         }
-        return { action: '波段买入2', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+        return { action: '波段买入2', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
       }
 
       // 波段心法3
       if (breakout_prev_high && !above60 && has_dead_cross) {
-        if (weekly_close != null && ma30Weekly != null) {
-          const dist = pctChange(weekly_close, ma30Weekly)
+        if (weekly_close != null && ma30_weekly != null) {
+          const dist = pctChange(weekly_close, ma30_weekly)
           if (dist != null && dist >= -2 && dist <= 1) {
             phase = '波段心法3'
             holdAction = '持有'
             holdReasons.push('牛回头持有')
             flatAction = '买入'
             flatReasons.push('突破前高后回踩30日线：牛回头买入')
-            return { action: '波段买入3', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+            return { action: '波段买入3', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
           }
         }
       }
@@ -188,7 +188,7 @@ export function useAdvice() {
         holdReasons.push('主升回调持有')
         flatAction = '小仓买入'
         flatReasons.push('J<20未跌破30线：反弹概率高')
-        return { action: '反弹买入', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+        return { action: '反弹买入', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
       }
     }
 
@@ -198,7 +198,7 @@ export function useAdvice() {
     holdReasons.push('趋势正常')
     flatAction = '观望'
     flatReasons.push('无明显信号')
-    return { action: '持有', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons }, name }
+    return { action: '持有', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
   }
 
   /**

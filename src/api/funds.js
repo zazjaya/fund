@@ -186,14 +186,14 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
  * 获取基金上一交易日涨跌数据
  */
 export function getLastTradingChange(code) {
-  return fetchPingzhongdata(code).then(d => {
-    if (!d.trend || !d.trend.length) return { name: '--', change: null, date: '--' }
-    const last = d.trend[d.trend.length - 1]
+  return fetchPingzhongdata(code).then(trend => {
+    if (!trend || !trend.length) return { change: null, date: '--' }
+    const last = trend[trend.length - 1]
     const change = safeFloat(last.equityReturn)
     let dateStr = '--'
     try { dateStr = new Date(last.x).toISOString().slice(0, 10) } catch (e) {}
-    return { name: d.name, change, date: dateStr }
-  }).catch(() => ({ name: '--', change: null, date: '--' }))
+    return { change, date: dateStr }
+  }).catch(() => ({ change: null, date: '--' }))
 }
 
 /**
@@ -224,7 +224,7 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
   // 并行获取无估值基金的上一交易日涨跌
   const promises = noEstimateCodes.map(async item => {
     const lcd = await getLastTradingChange(item.code)
-    const shortName = item.info.SHORTNAME || lcd.name || ''
+    const shortName = item.info.SHORTNAME || ''
     results.push({
       FCODE: item.code,
       SHORTNAME: shortName,
@@ -239,10 +239,10 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
 }
 
 /**
- * 获取 pingzhongdata 数据（script 标签加载）
+ * 获取 pingzhongdata 净值趋势数据（script 标签加载）
  *
  * 注意：pingzhongdata 接口不支持 CORS，需要用 script 标签加载
- * 脚本会设置全局变量 fS_name 和 Data_netWorthTrend
+ * 脚本会设置全局变量 Data_netWorthTrend
  */
 export async function fetchPingzhongdata(code) {
   return new Promise((resolve, reject) => {
@@ -268,11 +268,9 @@ export async function fetchPingzhongdata(code) {
 
     script.onload = () => {
       clearTimeout(timer)
-      // 读取全局变量
-      const name = window.fS_name || '--'
       const trend = window.Data_netWorthTrend || []
       cleanup()
-      resolve({ name, trend })
+      resolve(trend)
     }
 
     script.onerror = () => {
@@ -284,6 +282,6 @@ export async function fetchPingzhongdata(code) {
     document.head.appendChild(script)
   }).catch(e => {
     console.error('fetchPingzhongdata error:', code, e)
-    return { name: '--', trend: [] }
+    return []
   })
 }
