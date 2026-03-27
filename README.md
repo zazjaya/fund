@@ -236,8 +236,7 @@ npm run build
 
 **Bug 修复**
 - 修复管理基金列表获取名称时提示"网络繁忙"的问题
-- 修复 pingzhongdata 接口在生产环境 CORS 跨域问题
-- 改用 script 标签加载 pingzhongdata，实现请求队列串行化
+- 修复 pingzhongdata 接口在生产环境 CORS 跨域问题（改用 script 标签加载）
 
 **涉及文件**
 - `src/composables/useFunds.js` - 添加 fundNameMap 缓存

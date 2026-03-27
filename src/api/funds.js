@@ -239,75 +239,51 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
 }
 
 /**
- * pingzhongdata 请求队列
- * 由于使用 script 标签加载全局变量，需要串行化请求
- */
-const pingzhongdataQueue = []
-let pingzhongdataLoading = false
-
-/**
- * 获取 pingzhongdata 数据（script 标签加载，串行化）
+ * 获取 pingzhongdata 数据（script 标签加载）
  *
  * 注意：pingzhongdata 接口不支持 CORS，需要用 script 标签加载
  * 脚本会设置全局变量 fS_name 和 Data_netWorthTrend
- * 由于使用全局变量，必须串行化请求
  */
 export async function fetchPingzhongdata(code) {
   return new Promise((resolve, reject) => {
-    // 加入队列
-    pingzhongdataQueue.push({ code, resolve, reject })
-    processPingzhongdataQueue()
+    const timer = setTimeout(() => {
+      cleanup()
+      reject(new Error('script load timeout'))
+    }, TIMEOUT_MS)
+
+    const script = document.createElement('script')
+    // 开发环境使用代理
+    const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV
+    const baseUrl = isDev ? '/api/eastmoney-fund' : 'https://fund.eastmoney.com'
+    script.src = `${baseUrl}/pingzhongdata/${encodeURIComponent(code)}.js?v=${Date.now()}`
+
+    function cleanup() {
+      // 清理全局变量
+      try { delete window.fS_name } catch (e) {}
+      try { delete window.Data_netWorthTrend } catch (e) {}
+      if (script.parentNode) {
+        document.head.removeChild(script)
+      }
+    }
+
+    script.onload = () => {
+      clearTimeout(timer)
+      // 读取全局变量
+      const name = window.fS_name || '--'
+      const trend = window.Data_netWorthTrend || []
+      cleanup()
+      resolve({ name, trend })
+    }
+
+    script.onerror = () => {
+      clearTimeout(timer)
+      cleanup()
+      reject(new Error('script load error'))
+    }
+
+    document.head.appendChild(script)
   }).catch(e => {
     console.error('fetchPingzhongdata error:', code, e)
     return { name: '--', trend: [] }
   })
-}
-
-async function processPingzhongdataQueue() {
-  if (pingzhongdataLoading || pingzhongdataQueue.length === 0) return
-
-  pingzhongdataLoading = true
-  const { code, resolve, reject } = pingzhongdataQueue.shift()
-
-  const timer = setTimeout(() => {
-    cleanup()
-    reject(new Error('script load timeout'))
-  }, TIMEOUT_MS)
-
-  const script = document.createElement('script')
-  // 开发环境使用代理
-  const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV
-  const baseUrl = isDev ? '/api/eastmoney-fund' : 'https://fund.eastmoney.com'
-  script.src = `${baseUrl}/pingzhongdata/${encodeURIComponent(code)}.js?v=${Date.now()}`
-
-  function cleanup() {
-    // 清理全局变量
-    try { delete window.fS_name } catch (e) {}
-    try { delete window.Data_netWorthTrend } catch (e) {}
-    if (script.parentNode) {
-      document.head.removeChild(script)
-    }
-  }
-
-  script.onload = () => {
-    clearTimeout(timer)
-    // 读取全局变量
-    const name = window.fS_name || '--'
-    const trend = window.Data_netWorthTrend || []
-    cleanup()
-    resolve({ name, trend })
-    // 处理下一个请求
-    pingzhongdataLoading = false
-    processPingzhongdataQueue()
-  }
-
-  script.onerror = () => {
-    clearTimeout(timer)
-    cleanup()
-    reject(new Error('script load error'))
-    pingzhongdataLoading = false
-    processPingzhongdataQueue()
-  }
-
-  document.head.appendChild(script)
 }
