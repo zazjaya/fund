@@ -1,7 +1,9 @@
 <template>
   <div id="app">
-    <Header :last-update="lastUpdate" />
-    <IndexStrip :data="indexData" />
+    <div class="sticky-header">
+      <Header :last-update="lastUpdate" />
+      <IndexStrip :data="indexData" />
+    </div>
     <div class="container">
       <Toolbar
         v-model:key-value="keyValue"
@@ -154,8 +156,26 @@ onMounted(async () => {
 </script>
 
 <style>
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
 .container {
   padding: 24px 32px;
   max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
 }
 </style>

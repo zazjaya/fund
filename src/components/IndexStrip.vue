@@ -105,4 +105,56 @@ function priceClass(item) {
 .negative {
   color: #28a745;
 }
+
+@media (max-width: 768px) {
+  .index-strip {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .index-card {
+    min-width: 100px;
+    padding: 10px 14px;
+  }
+
+  .index-card-title {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .index-card-main {
+    font-size: 18px;
+  }
+
+  .index-card-sub {
+    font-size: 12px;
+    margin-top: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .index-strip {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .index-card {
+    min-width: 80px;
+    padding: 8px 10px;
+  }
+
+  .index-card-title {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+
+  .index-card-main {
+    font-size: 15px;
+  }
+
+  .index-card-sub {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+}
 </style>

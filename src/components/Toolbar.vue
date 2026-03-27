@@ -301,4 +301,90 @@ function formatTime(date) {
   margin-left: 4px;
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .toolbar {
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .search-input {
+    width: 120px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .toggle-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .key-input {
+    width: 80px;
+    padding: 6px 24px 6px 10px;
+    font-size: 13px;
+  }
+
+  .source-select {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .refresh-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .manage-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .update-time {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar {
+    gap: 6px;
+    padding: 10px 0;
+  }
+
+  .search-input {
+    width: 100px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .toggle-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .key-input {
+    width: 70px;
+    padding: 5px 20px 5px 8px;
+    font-size: 12px;
+  }
+
+  .source-select {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .refresh-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .manage-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .update-time {
+    font-size: 11px;
+  }
+}
 </style>
