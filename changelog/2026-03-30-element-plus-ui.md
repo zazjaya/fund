@@ -15,6 +15,7 @@
 - 平板端 (768-1024px): 紧凑表格
 - 移动端 (<768px): 卡片式布局
 - 管理基金弹窗适配移动端
+- 移动端卡片添加涨跌幅排序按钮（升序/降序）
 
 ## 功能修复
 
@@ -26,6 +27,7 @@
 - 更新时间格式改为 "更新时间：YYYY-MM-DD HH:mm"
 - 修复移动端卡片建议原因换行显示
 - 修复移动端卡片名称显示顺序（名称在上加粗，代码在下）
+- 修复表格列排序不生效问题（添加 prop 属性）
 
 ## 技术变更
 
@@ -41,7 +43,7 @@
 - `src/components/Header.vue` - 使用 el-menu 导航栏
 - `src/components/IndexStrip.vue` - 优化响应式
 - `src/components/Toolbar.vue` - 使用 Element Plus 组件
-- `src/components/FundTable.vue` - 桌面端表格/移动端卡片
+- `src/components/FundTable.vue` - 桌面端表格/移动端卡片/排序功能
 - `src/components/FundManageModal.vue` - 使用 el-dialog
 - `src/components/CustomAlert.vue` - 移动端适配
 - `src/App.vue` - 容器样式、showAll 状态管理

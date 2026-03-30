@@ -37,6 +37,25 @@
 
     <!-- 移动端卡片 -->
     <div v-else class="fund-cards">
+      <div class="mobile-sort">
+        <span class="sort-label">涨跌幅：</span>
+        <el-button-group>
+          <el-button
+            :type="sortKey === 'GSZZL' && !sortAsc ? 'primary' : ''"
+            size="small"
+            @click="sortKey = 'GSZZL'; sortAsc = false"
+          >
+            降序 ↑
+          </el-button>
+          <el-button
+            :type="sortKey === 'GSZZL' && sortAsc ? 'primary' : ''"
+            size="small"
+            @click="sortKey = 'GSZZL'; sortAsc = true"
+          >
+            升序 ↓
+          </el-button>
+        </el-button-group>
+      </div>
       <el-card
         v-for="fund in sortedFunds"
         :key="fund.FCODE"
@@ -331,6 +350,19 @@ const sortedFunds = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.mobile-sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+}
+
+.sort-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
 }
 
 .fund-card {
