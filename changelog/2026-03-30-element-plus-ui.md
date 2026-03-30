@@ -24,12 +24,16 @@
 - 优化表格字体加粗显示
 - 建议和原因列支持多行显示（持仓/空仓格式）
 - 更新时间格式改为 "更新时间：YYYY-MM-DD HH:mm"
+- 修复移动端卡片建议原因换行显示
+- 修复移动端卡片名称显示顺序（名称在上加粗，代码在下）
 
 ## 技术变更
 
 - 新增依赖：element-plus、@element-plus/icons-vue
 - src/main.js 引入 Element Plus
 - src/assets/style.css 适配 Element Plus 样式
+- fetchPingzhongdata 现在返回 { trend, name }
+- getLastTradingChange 返回 { change, date, name }
 
 ## 涉及文件
 
@@ -42,5 +46,5 @@
 - `src/components/CustomAlert.vue` - 移动端适配
 - `src/App.vue` - 容器样式、showAll 状态管理
 - `src/assets/style.css` - Element Plus 主题适配
-- `src/api/funds.js` - fetchPingzhongdata 返回名称、fetchFundBasicInfo
+- `src/api/funds.js` - fetchPingzhongdata 返回名称
 - `src/composables/useAdvice.js` - 适配 fetchPingzhongdata 返回值变化
