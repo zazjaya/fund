@@ -8,6 +8,7 @@
       <Toolbar
         v-model:key-value="keyValue"
         v-model:source-mode="sourceMode"
+        v-model:show-all="showAll"
         :valid-key="validKey"
         :last-update="lastUpdate"
         :loading="loading"
@@ -57,6 +58,7 @@ import { useAuth } from './composables/useAuth'
 // 状态
 const keyValue = ref('')
 const sourceMode = ref('auto')
+const showAll = ref(true)
 const loading = ref(false)
 const showManageModal = ref(false)
 const validKey = ref('')
@@ -111,7 +113,12 @@ async function loadData() {
 }
 
 function getEffectiveCodes() {
-  if (validKey.value && fundGroups.value[validKey.value]) {
+  // 如果是"看全部"模式或者没有有效密钥，返回全部基金
+  if (showAll.value || !validKey.value) {
+    return fundCodes.value
+  }
+  // 否则返回对应分组的基金
+  if (fundGroups.value[validKey.value]) {
     return fundGroups.value[validKey.value]
   }
   return fundCodes.value
@@ -122,19 +129,25 @@ function onFundSaved() {
 }
 
 // 监听密钥变化
-watch(keyValue, async (newKey) => {
+watch(keyValue, async (newKey, oldKey) => {
+  // 避免初始化时重复触发
+  if (newKey === oldKey) return
+
   if (newKey) {
     const isValid = await authValidateKey(newKey, fundGroups.value)
     if (isValid) {
       validKey.value = newKey
+      showAll.value = false
       localStorage.setItem('fundMonitorValidKey', newKey)
       loadData()
     }
-  } else {
-    validKey.value = ''
-    localStorage.removeItem('fundMonitorValidKey')
-    loadData()
   }
+  // 如果 keyValue 为空，由 showAll 状态控制是否显示全部
+})
+
+// 监听显示模式变化
+watch(showAll, () => {
+  loadData()
 })
 
 // 初始化
@@ -148,7 +161,12 @@ onMounted(async () => {
     const isValid = await authValidateKey(storedKey, fundGroups.value)
     if (isValid) {
       validKey.value = storedKey
+      showAll.value = false
+    } else {
+      showAll.value = true
     }
+  } else {
+    showAll.value = true
   }
 
   loadData()
@@ -164,7 +182,8 @@ onMounted(async () => {
 
 .container {
   padding: 24px 32px;
-  max-width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {

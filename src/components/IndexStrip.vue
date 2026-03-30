@@ -54,56 +54,65 @@ function priceClass(item) {
 .index-strip {
   display: flex;
   gap: 12px;
-  padding: 20px 40px;
+  padding: 16px 24px;
   background: #fff;
   overflow-x: auto;
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid #e8e8e8;
 }
 
 .index-card {
   flex: 1;
-  min-width: 140px;
-  padding: 16px 20px;
+  min-width: 120px;
+  padding: 12px 16px;
   background: #fafafa;
   border-radius: 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid #e5e7eb;
   transition: all 0.2s ease;
 }
 
 .index-card:hover {
-  border-color: #d0d0d0;
-  background: #f5f5f5;
+  border-color: #4f46e5;
+  background: #f5f7ff;
 }
 
 .index-card-title {
-  font-size: 13px;
-  margin-bottom: 8px;
-  color: #4b5563;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
 }
 
 .index-card-main {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
   letter-spacing: -0.5px;
 }
 
 .index-card-sub {
-  font-size: 14px;
-  margin-top: 4px;
+  font-size: 13px;
+  margin-top: 2px;
   color: #374151;
   font-weight: 600;
 }
 
 .positive {
-  color: #d73a49;
+  color: #dc2626;
 }
 
 .negative {
-  color: #28a745;
+  color: #16a34a;
+}
+
+.muted {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {
@@ -119,16 +128,16 @@ function priceClass(item) {
 
   .index-card-title {
     font-size: 11px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .index-card-main {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .index-card-sub {
-    font-size: 12px;
-    margin-top: 3px;
+    font-size: 11px;
+    margin-top: 2px;
   }
 }
 
@@ -149,7 +158,7 @@ function priceClass(item) {
   }
 
   .index-card-main {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .index-card-sub {

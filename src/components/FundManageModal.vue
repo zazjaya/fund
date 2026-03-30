@@ -1,68 +1,71 @@
 <template>
-  <Teleport to="body">
-    <div v-if="visible" class="modal-backdrop" @click.self="close">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <div class="modal-title">管理基金列表</div>
-          <button class="close-btn" @click="close">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
+  <el-dialog
+    v-model="visible"
+    title="管理基金列表"
+    width="90%"
+    :close-on-click-modal="false"
+    class="fund-manage-dialog"
+    :show-close="true"
+    center
+  >
+    <div class="add-fund-row">
+      <el-input
+        v-model="newCode"
+        placeholder="输入6位基金代码"
+        maxlength="6"
+        @keyup.enter="addFund"
+      />
+      <el-button
+        type="primary"
+        :loading="adding"
+        :disabled="!newCode.trim()"
+        @click="addFund"
+      >
+        {{ adding ? '添加中' : '添加' }}
+      </el-button>
+    </div>
+
+    <div class="fund-count">共 {{ managedCodes.length }} 只基金</div>
+
+    <div v-if="managedCodes.length > 0" class="fund-list">
+      <div v-for="code in managedCodes" :key="code" class="fund-item">
+        <div class="fund-info">
+          <span class="fund-code">{{ code }}</span>
+          <span class="fund-name">{{ props.fundNameMap[code] || '--' }}</span>
         </div>
-
-        <div class="modal-body">
-          <div class="add-fund-row">
-            <input
-              v-model="newCode"
-              type="text"
-              placeholder="输入6位基金代码"
-              class="code-input"
-              @keypress.enter="addFund"
-              maxlength="6"
-            />
-            <button class="add-btn" @click="addFund" :disabled="adding || !newCode.trim()">
-              <span v-if="adding" class="spinner"></span>
-              {{ adding ? '添加中' : '添加' }}
-            </button>
-          </div>
-
-          <div class="fund-count">共 {{ managedCodes.length }} 只基金</div>
-
-          <div class="fund-list">
-            <div v-for="code in managedCodes" :key="code" class="fund-item">
-              <div class="fund-info">
-                <span class="fund-code">{{ code }}</span>
-                <span class="fund-name">{{ props.fundNameMap[code] || '--' }}</span>
-              </div>
-              <button class="del-btn" @click="removeFund(code)">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div v-if="managedCodes.length === 0" class="empty-state">
-            暂无基金，请添加
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="cancel-btn" @click="close">取消</button>
-          <button class="save-btn" @click="save" :disabled="saving || managedCodes.length === 0">
-            <span v-if="saving" class="spinner"></span>
-            {{ saving ? '保存中' : '保存' }}
-          </button>
-        </div>
+        <el-button
+          type="danger"
+          plain
+          size="small"
+          circle
+          @click="removeFund(code)"
+        >
+          <el-icon><Delete /></el-icon>
+        </el-button>
       </div>
     </div>
-  </Teleport>
+
+    <el-empty v-else description="暂无基金，请添加" />
+
+    <template #footer>
+      <el-button @click="close">取消</el-button>
+      <el-button
+        type="primary"
+        :loading="saving"
+        :disabled="managedCodes.length === 0"
+        @click="save"
+      >
+        {{ saving ? '保存中' : '保存' }}
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { Delete } from '@element-plus/icons-vue'
 import { getFileContent, updateFile } from '../api/github'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const props = defineProps({
   keyValue: { type: String, required: true },
@@ -77,29 +80,11 @@ const adding = ref(false)
 const saving = ref(false)
 const managedCodes = ref([])
 
-// GitHub API 相关
 const groupsSha = ref('')
 const codesSha = ref('')
 const allCodes = ref([])
+const fundGroups = ref({})
 
-// 加载当前分组的基金列表
-async function loadGroupCodes() {
-  try {
-    // 从 GitHub API 加载获取 SHA
-    const groups = await getFileContent('public/config/fund_groups.json')
-    fundGroups.value = groups.content
-    groupsSha.value = groups.sha
-    managedCodes.value = groups.content[props.keyValue] || []
-  } catch (e) {
-    console.error('加载分组失败:', e)
-    // 回退到本地加载
-    const res = await fetch('/fund/config/fund_groups.json?t=' + Date.now())
-    const groups = await res.json()
-    managedCodes.value = groups[props.keyValue] || []
-  }
-}
-
-// 加载所有配置（包括 fund_codes）
 async function loadAllConfig() {
   try {
     const [codes, groups] = await Promise.all([
@@ -113,51 +98,44 @@ async function loadAllConfig() {
     managedCodes.value = groups.content[props.keyValue] || []
   } catch (e) {
     console.error('加载配置失败:', e)
+    ElMessage.error('加载配置失败')
   }
 }
 
-const fundGroups = ref({})
-
-// 添加基金
 async function addFund() {
   const code = newCode.value.trim()
   if (!/^\d{6}$/.test(code)) {
-    alert('请输入6位基金代码')
+    ElMessage.warning('请输入6位基金代码')
     return
   }
 
   if (managedCodes.value.includes(code)) {
-    alert('该基金已在列表中')
+    ElMessage.warning('该基金已在列表中')
     return
   }
 
   managedCodes.value.push(code)
   newCode.value = ''
+  ElMessage.success(`已添加 ${code}`)
 }
 
-// 删除基金
 function removeFund(code) {
   managedCodes.value = managedCodes.value.filter(c => c !== code)
 }
 
-// 保存
 async function save() {
   if (!managedCodes.value.length) {
-    alert('基金列表不能为空')
+    ElMessage.warning('基金列表不能为空')
     return
   }
 
   saving.value = true
 
   try {
-    // 更新分组
     fundGroups.value[props.keyValue] = managedCodes.value
-
-    // 合并所有代码（去重）
     const allGroupCodes = Object.values(fundGroups.value).flat()
     const uniqueCodes = [...new Set([...allCodes.value, ...allGroupCodes])]
 
-    // 更新 fund_groups.json
     await updateFile(
       'public/config/fund_groups.json',
       fundGroups.value,
@@ -166,7 +144,6 @@ async function save() {
       `Update fund groups for ${props.keyValue}`
     )
 
-    // 更新 fund_codes.json（如果有新代码）
     if (uniqueCodes.length !== allCodes.value.length) {
       await updateFile(
         'public/config/fund_codes.json',
@@ -177,12 +154,12 @@ async function save() {
       )
     }
 
-    alert('基金列表已保存到 GitHub')
+    ElMessage.success('基金列表已保存到 GitHub')
     emit('saved')
     close()
   } catch (e) {
     console.error('保存失败:', e)
-    alert('保存失败: ' + e.message)
+    ElMessage.error('保存失败: ' + e.message)
   } finally {
     saving.value = false
   }
@@ -194,115 +171,18 @@ function close() {
 }
 
 onMounted(loadAllConfig)
-
 watch(() => props.keyValue, loadAllConfig)
 </script>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-panel {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 0;
-  width: 480px;
-  max-width: 90vw;
-  max-height: 80vh;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-title {
-  font-weight: 700;
-  font-size: 18px;
-  color: #1f2937;
-}
-
-.close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-
-.close-btn:hover {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
-.modal-body {
-  padding: 24px;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
 .add-fund-row {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.code-input {
+.add-fund-row :deep(.el-input) {
   flex: 1;
-  padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 15px;
-  background: #fff;
-  transition: all 0.15s;
-}
-
-.code-input:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-.add-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  border: none;
-  background: #4f46e5;
-  color: #fff;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
-}
-
-.add-btn:hover:not(:disabled) {
-  background: #4338ca;
-}
-
-.add-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .fund-count {
@@ -316,15 +196,17 @@ watch(() => props.keyValue, loadAllConfig)
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .fund-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 12px 16px;
   background: #f9fafb;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
   transition: all 0.15s;
 }
@@ -342,102 +224,81 @@ watch(() => props.keyValue, loadAllConfig)
 
 .fund-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #1f2937;
 }
 
 .fund-name {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
   font-weight: 500;
 }
 
-.del-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .fund-manage-dialog :deep(.el-dialog) {
+    width: 92% !important;
+    max-width: 92%;
+    margin: 16px auto !important;
+  }
 
-.del-btn:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
+  .fund-manage-dialog :deep(.el-dialog__header) {
+    padding: 16px;
+    margin-right: 0;
+  }
 
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #9ca3af;
-  font-size: 14px;
-}
+  .fund-manage-dialog :deep(.el-dialog__title) {
+    font-size: 16px;
+    font-weight: 600;
+  }
 
-.modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
+  .fund-manage-dialog :deep(.el-dialog__body) {
+    padding: 16px;
+  }
 
-.cancel-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: all 0.15s;
-}
+  .fund-manage-dialog :deep(.el-dialog__footer) {
+    padding: 12px 16px;
+  }
 
-.cancel-btn:hover {
-  border-color: #9ca3af;
-  background: #f9fafb;
-}
+  .add-fund-row {
+    flex-direction: column;
+    gap: 10px;
+  }
 
-.save-btn {
-  padding: 12px 28px;
-  border-radius: 10px;
-  border: none;
-  background: #4f46e5;
-  color: #fff;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
-}
+  .add-fund-row :deep(.el-input) {
+    width: 100% !important;
+  }
 
-.save-btn:hover:not(:disabled) {
-  background: #4338ca;
-}
+  .add-fund-row :deep(.el-button) {
+    width: 100%;
+  }
 
-.save-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  .fund-list {
+    max-height: 50vh;
+  }
 
-.spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
+  .fund-item {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+  }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  .fund-info {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .fund-code {
+    font-size: 13px;
+  }
+
+  .fund-name {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 120px;
+  }
 }
 </style>

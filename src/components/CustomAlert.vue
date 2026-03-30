@@ -157,4 +157,36 @@ function alert(msg, title = '提示') {
 .custom-alert-cancel:hover {
   background: #f1f5f9;
 }
+
+@media (max-width: 480px) {
+  .custom-alert-box {
+    min-width: auto;
+    width: 85%;
+    max-width: 85%;
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .custom-alert-title {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+
+  .custom-alert-message {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .custom-alert-buttons {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .custom-alert-button,
+  .custom-alert-cancel {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+  }
+}
 </style>

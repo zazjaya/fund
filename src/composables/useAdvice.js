@@ -23,7 +23,8 @@ export function useAdvice() {
    */
   async function getTradeAdvice(code, gszzl = null, hasPosition = true) {
     try {
-      const trend = await fetchPingzhongdata(code)
+      const result = await fetchPingzhongdata(code)
+      const trend = result.trend || []
 
       if (!trend || trend.length < 10) {
         return { action: '观望', reasons: ['无法获取净值序列'], metrics: {} }

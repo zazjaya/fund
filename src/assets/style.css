@@ -70,7 +70,7 @@ header .subtitle {
   border-radius: 2px;
 }
 
-/* 表格 */
+/* 表格 - PC端 */
 .fund-table {
   width: 100%;
   border-collapse: separate;
@@ -204,6 +204,42 @@ header .subtitle {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Element Plus 适配 */
+.el-table {
+  --el-table-border-color: #e5e7eb;
+  --el-table-header-bg-color: #4f46e5;
+  --el-table-header-text-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.el-table th.el-table__cell {
+  background: #4f46e5 !important;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.el-table td.el-table__cell {
+  font-size: 14px;
+}
+
+.el-button--primary {
+  --el-button-bg-color: #4f46e5;
+  --el-button-border-color: #4f46e5;
+  --el-button-hover-bg-color: #4338ca;
+  --el-button-hover-border-color: #4338ca;
+}
+
+.el-dialog {
+  border-radius: 16px;
+}
+
+.el-input__wrapper {
+  border-radius: 8px;
 }
 
 /* 响应式 */
