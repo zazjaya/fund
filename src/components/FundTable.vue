@@ -394,6 +394,12 @@ const sortedFunds = computed(() => {
   color: #1a1a1a;
 }
 
+.card-item span:not(.label) {
+  white-space: pre-line;
+  line-height: 1.4;
+  font-size: 13px;
+}
+
 .card-footer {
   display: flex;
   justify-content: space-between;
@@ -408,6 +414,7 @@ const sortedFunds = computed(() => {
   color: #666;
   flex: 1;
   white-space: pre-line;
+  line-height: 1.4;
 }
 
 .reason-cell {
