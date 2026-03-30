@@ -11,13 +11,13 @@
       @header-click="sortBy"
     >
       <el-table-column prop="FCODE" label="代码" width="90" sortable />
-      <el-table-column label="名称" min-width="120" sortable #default="{ row }">
+      <el-table-column prop="SHORTNAME" label="名称" min-width="120" sortable #default="{ row }">
         {{ getFundName(row) }}
       </el-table-column>
-      <el-table-column label="估算净值" width="110" sortable #default="{ row }">
+      <el-table-column prop="GSZ" label="估算净值" width="110" sortable #default="{ row }">
         <span :class="getChangeClass(row)">{{ row.GSZ ?? '-' }}</span>
       </el-table-column>
-      <el-table-column label="估算涨跌" width="110" sortable #default="{ row }">
+      <el-table-column prop="GSZZL" label="估算涨跌" width="110" sortable #default="{ row }">
         <span :class="getChangeClass(row)" class="chg">{{ formatChange(row) }}</span>
       </el-table-column>
       <el-table-column label="J(日)" width="80" #default="{ row }">
