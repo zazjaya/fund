@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.1.4 | 2026-04-01 | 修复 GitHub Pages CORS 问题，所有接口改用 JSONP |
 | v2.1.3 | 2026-04-01 | 修复 fundgz API 频率限制问题，请求队列串行处理 |
 | v2.1.2 | 2026-04-01 | 建议颜色方案调整，清仓减仓绿色，持有观望灰色，买入加仓红色 |
 | v2.1.1 | 2026-03-31 | 添加定时自动刷新功能，每2分钟自动更新数据 |
@@ -188,12 +189,12 @@ npm run preview
 
 | 功能 | 外部 API | 调用方式 |
 |------|----------|---------|
-| 批量基金估值 | `fundmobapi.eastmoney.com` | fetch（开发时通过代理） |
+| 批量基金估值 | `fundmobapi.eastmoney.com` | JSONP |
 | 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP |
-| 指数快照 | `push2.eastmoney.com` | fetch（开发时通过代理） |
-| 净值数据 | `fund.eastmoney.com/pingzhongdata` | fetch（开发时通过代理） |
+| 指数快照 | `push2.eastmoney.com` | JSONP |
+| 净值数据 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
 
-> **注意**：开发环境下通过 Vite 代理绕过 CORS 限制，生产环境部署到 GitHub Pages 后可直接访问这些 API（大多数支持跨域）。
+> **注意**：所有接口均使用 JSONP 或 script 标签加载方式，无需代理即可在 GitHub Pages 上正常运行。
 
 ## 部署
 
@@ -237,6 +238,19 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
+
+### v2.1.4 (2026-04-01)
+
+**Bug 修复**
+- 修复 GitHub Pages CORS 跨域问题
+- 所有外部 API 改用 JSONP 方式调用
+- `fundmobapi.eastmoney.com` 改用 JSONP（参数 `jsonCallBack`）
+- `push2.eastmoney.com` 改用 JSONP（参数 `cb`）
+- 删除无用的 `fetchJSON` 函数
+
+**技术变更**
+- 移除自定义请求头避免触发 CORS 预检
+- 统一使用 script 标签加载方式获取外部数据
 
 ### v2.1.3 (2026-04-01)
 

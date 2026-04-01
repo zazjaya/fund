@@ -16,29 +16,53 @@ function safeFloat(v) {
 }
 
 /**
- * 获取指数快照
+ * 获取指数快照（JSONP方式）
  */
 export async function fetchIndexLive() {
-  const url =
-    'https://push2.eastmoney.com/api/qt/ulist.np/get' +
-    '?fltt=2&secids=' + encodeURIComponent(INDEX_SECIDS.join(',')) +
-    '&fields=f2,f3,f4,f12,f14'
+  return new Promise((resolve, reject) => {
+    const callback = 'jsonp_index_' + Date.now() + '_' + Math.random().toString(36).slice(2)
+    const url =
+      'https://push2.eastmoney.com/api/qt/ulist.np/get' +
+      '?fltt=2&secids=' + encodeURIComponent(INDEX_SECIDS.join(',')) +
+      '&fields=f2,f3,f4,f12,f14' +
+      '&cb=' + callback
 
-  const res = await fetch(url)
-  const obj = await res.json()
-  const out = []
-  const datas = ((obj && obj.data) || {}).diff || []
+    const timer = setTimeout(() => {
+      delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+      reject(new Error('timeout'))
+    }, 10000)
 
-  datas.forEach(it => {
-    if (!it) return
-    out.push({
-      code: String(it.f12 || ''),
-      name: String(it.f14 || ''),
-      last: safeFloat(it.f2),
-      chg: safeFloat(it.f4),
-      pct: safeFloat(it.f3)
-    })
+    window[callback] = (obj) => {
+      clearTimeout(timer)
+      delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+
+      const out = []
+      const datas = ((obj && obj.data) || {}).diff || []
+
+      datas.forEach(it => {
+        if (!it) return
+        out.push({
+          code: String(it.f12 || ''),
+          name: String(it.f14 || ''),
+          last: safeFloat(it.f2),
+          chg: safeFloat(it.f4),
+          pct: safeFloat(it.f3)
+        })
+      })
+
+      resolve(out)
+    }
+
+    const script = document.createElement('script')
+    script.src = url
+    script.onerror = () => {
+      clearTimeout(timer)
+      delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+      reject(new Error('script load error'))
+    }
+    document.head.appendChild(script)
   })
-
-  return out
 }

@@ -12,27 +12,6 @@ const TIMEOUT_MS = 15000
 // ===== 工具函数 =====
 
 /**
- * 发送 JSON 请求
- */
-function fetchJSON(url, timeoutMs = TIMEOUT_MS) {
-  return new Promise((resolve, reject) => {
-    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null
-    const timer = setTimeout(() => {
-      if (ctrl) ctrl.abort()
-      reject(new Error('timeout'))
-    }, timeoutMs)
-
-    fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: ctrl ? ctrl.signal : undefined
-    })
-      .then(r => r.json())
-      .then(d => { clearTimeout(timer); resolve(d) })
-      .catch(e => { clearTimeout(timer); reject(e) })
-  })
-}
-
-/**
  * 安全转换为浮点数
  */
 function safeFloat(v) {
@@ -76,26 +55,51 @@ export function fetchRealtimeBatch(codes) {
 }
 
 function fetchSingleBatch(codes) {
-  const url =
-    'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-    '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
-    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-  return fetchJSON(url).then(data => {
-    const map = {}
-    const datas = (data && data.Datas) || []
-    datas.forEach(item => {
-      if (!item || !item.FCODE) return
-      map[item.FCODE] = {
-        FCODE: item.FCODE,
-        SHORTNAME: item.SHORTNAME || '',
-        GSZ: safeFloat(item.GSZ),
-        GSZZL: safeFloat(item.GSZZL),
-        DWJZ: safeFloat(item.NAV),
-        GZTIME: item.GZTIME || '',
-        PDATE: item.PDATE || ''
-      }
-    })
-    return map
+  return new Promise((resolve, reject) => {
+    const callback = 'jsonp_fund_' + Date.now() + '_' + Math.random().toString(36).slice(2)
+    const url =
+      'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
+      '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
+      '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(',')) +
+      '&jsonCallBack=' + callback
+
+    const timer = setTimeout(() => {
+      delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+      reject(new Error('timeout'))
+    }, TIMEOUT_MS)
+
+    window[callback] = (data) => {
+      clearTimeout(timer)
+      delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+
+      const map = {}
+      const datas = (data && data.Datas) || []
+      datas.forEach(item => {
+        if (!item || !item.FCODE) return
+        map[item.FCODE] = {
+          FCODE: item.FCODE,
+          SHORTNAME: item.SHORTNAME || '',
+          GSZ: safeFloat(item.GSZ),
+          GSZZL: safeFloat(item.GSZZL),
+          DWJZ: safeFloat(item.NAV),
+          GZTIME: item.GZTIME || '',
+          PDATE: item.PDATE || ''
+        }
+      })
+      resolve(map)
+    }
+
+    const script = document.createElement('script')
+    script.src = url
+    script.onerror = () => {
+      clearTimeout(timer)
+      delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+      reject(new Error('script load error'))
+    }
+    document.head.appendChild(script)
   })
 }
 
