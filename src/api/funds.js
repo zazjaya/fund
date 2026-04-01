@@ -306,10 +306,18 @@ export function getLastTradingChange(code) {
  * 获取基金数据列表（主入口函数）
  */
 export async function fetchFundsLive(fundCodes, mode = 'auto') {
+  console.log('[fetchFundsLive] 开始, codes=', fundCodes?.length)
   // 获取基本信息（网络失败时返回空对象，不阻塞主流程）
-  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(() => ({}))
+  console.log('[fetchFundsLive] 开始 fetchFundBasicInfo')
+  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(e => {
+    console.warn('[fetchFundsLive] fetchFundBasicInfo 失败:', e)
+    return {}
+  })
+  console.log('[fetchFundsLive] fetchFundBasicInfo 完成, basicInfo keys=', Object.keys(basicInfo).length)
 
+  console.log('[fetchFundsLive] 开始 fetchRealtimeAuto')
   const batchMap = await fetchRealtimeAuto(fundCodes, mode)
+  console.log('[fetchFundsLive] fetchRealtimeAuto 完成, batchMap keys=', Object.keys(batchMap).length)
   const results = []
   const noEstimateCodes = []
   const today = todayStr()

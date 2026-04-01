@@ -145,7 +145,11 @@ const diagConfigClass = computed(() => {
 // 方法
 async function loadData() {
   console.log('[loadData] 开始加载, loading=', loading.value)
-  if (loading.value) return
+  // 强制重置 loading，避免之前请求卡住
+  if (loading.value) {
+    console.warn('[loadData] 强制重置 loading')
+    loading.value = false
+  }
   loading.value = true
   try {
     const codes = getEffectiveCodes()
@@ -155,10 +159,12 @@ async function loadData() {
       loading.value = false
       return
     }
+    console.log('[loadData] 开始 Promise.all')
     await Promise.all([
       loadFunds(codes, sourceMode.value),
       loadIndex()
     ])
+    console.log('[loadData] Promise.all 完成')
     await loadAdvice(codes)
     lastUpdate.value = new Date()
     console.log('[loadData] 完成, funds=', funds.value.length, 'index=', indexData.value.length)
@@ -166,6 +172,7 @@ async function loadData() {
     console.error('[loadData] 错误:', e)
   } finally {
     loading.value = false
+    console.log('[loadData] 结束, loading=', loading.value)
   }
 }
 
