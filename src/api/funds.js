@@ -8,7 +8,6 @@
  */
 
 const TIMEOUT_MS = 15000
-const FUNDGZ_MAX_CODES = 10
 
 // ===== 工具函数 =====
 
@@ -203,12 +202,9 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
     })
     if (!missing.length) return batchMap
 
-    // fundgz 在网络异常时可能逐只超时，缺失数量过多时会显著拖慢页面。
-    // 因此仅在缺失数量较小时启用 fundgz 补齐，大批量缺失直接进入下一步 LAST_CHG 回退。
-    const fundgzTargets = missing.length <= FUNDGZ_MAX_CODES ? missing : []
-
+    // 并行请求缺失的基金
     return Promise.all(
-      fundgzTargets.map(c =>
+      missing.map(c =>
         fetchSingleFundgz(c)
           .then(r => { batchMap[c] = r })
           .catch(() => {})
@@ -278,9 +274,8 @@ export function getLastTradingChange(code) {
  * 获取基金数据列表（主入口函数）
  */
 export async function fetchFundsLive(fundCodes, mode = 'auto') {
-  // fundmobapi JSONP 在部分 Chromium 环境会被 ORB 拦截，导致长时间等待。
-  // 名称优先使用批量接口返回值，不再把 basicInfo 作为前置依赖。
-  const basicInfo = {}
+  // 先获取所有基金的基本信息（名称）
+  const basicInfo = await fetchFundBasicInfo(fundCodes)
 
   const batchMap = await fetchRealtimeAuto(fundCodes, mode)
   const results = []
