@@ -55,6 +55,7 @@ export function fetchRealtimeBatch(codes) {
 }
 
 function fetchSingleBatch(codes) {
+  console.log('[fetchSingleBatch] 开始, codes=', codes.length)
   return new Promise((resolve, reject) => {
     const callback = 'jsonp_fund_' + Date.now() + '_' + Math.random().toString(36).slice(2)
     const url =
@@ -63,13 +64,17 @@ function fetchSingleBatch(codes) {
       '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(',')) +
       '&jsonCallBack=' + callback
 
+    console.log('[fetchSingleBatch] URL=', url)
+
     const timer = setTimeout(() => {
+      console.error('[fetchSingleBatch] 超时')
       delete window[callback]
       if (script.parentNode) document.head.removeChild(script)
       reject(new Error('timeout'))
     }, TIMEOUT_MS)
 
     window[callback] = (data) => {
+      console.log('[fetchSingleBatch] JSONP 回调触发, data=', data?.Datas?.length)
       clearTimeout(timer)
       delete window[callback]
       if (script.parentNode) document.head.removeChild(script)
@@ -88,18 +93,24 @@ function fetchSingleBatch(codes) {
           PDATE: item.PDATE || ''
         }
       })
+      console.log('[fetchSingleBatch] 解析完成, map keys=', Object.keys(map).length)
       resolve(map)
     }
 
     const script = document.createElement('script')
     script.src = url
-    script.onerror = () => {
+    script.onerror = (e) => {
+      console.error('[fetchSingleBatch] script 加载错误:', e)
       clearTimeout(timer)
       delete window[callback]
       if (script.parentNode) document.head.removeChild(script)
       reject(new Error('script load error'))
     }
+    script.onload = () => {
+      console.log('[fetchSingleBatch] script onload 触发')
+    }
     document.head.appendChild(script)
+    console.log('[fetchSingleBatch] script 已添加到 head')
   })
 }
 
