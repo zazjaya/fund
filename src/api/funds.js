@@ -56,29 +56,17 @@ export function fetchRealtimeBatch(codes) {
 
 function fetchSingleBatch(codes) {
   console.log('[fetchSingleBatch] 开始, codes=', codes.length)
-  return new Promise((resolve, reject) => {
-    const callback = 'jsonp_fund_' + Date.now() + '_' + Math.random().toString(36).slice(2)
-    const url =
-      'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-      '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
-      '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(',')) +
-      '&jsonCallBack=' + callback
+  const url =
+    'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
+    '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
+    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
 
-    console.log('[fetchSingleBatch] URL=', url)
+  console.log('[fetchSingleBatch] URL=', url)
 
-    const timer = setTimeout(() => {
-      console.error('[fetchSingleBatch] 超时')
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
-      reject(new Error('timeout'))
-    }, TIMEOUT_MS)
-
-    window[callback] = (data) => {
-      console.log('[fetchSingleBatch] JSONP 回调触发, data=', data?.Datas?.length)
-      clearTimeout(timer)
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
-
+  return fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      console.log('[fetchSingleBatch] 返回数据, Datas=', data?.Datas?.length)
       const map = {}
       const datas = (data && data.Datas) || []
       datas.forEach(item => {
@@ -94,24 +82,12 @@ function fetchSingleBatch(codes) {
         }
       })
       console.log('[fetchSingleBatch] 解析完成, map keys=', Object.keys(map).length)
-      resolve(map)
-    }
-
-    const script = document.createElement('script')
-    script.src = url
-    script.onerror = (e) => {
-      console.error('[fetchSingleBatch] script 加载错误:', e)
-      clearTimeout(timer)
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
-      reject(new Error('script load error'))
-    }
-    script.onload = () => {
-      console.log('[fetchSingleBatch] script onload 触发')
-    }
-    document.head.appendChild(script)
-    console.log('[fetchSingleBatch] script 已添加到 head')
-  })
+      return map
+    })
+    .catch(e => {
+      console.error('[fetchSingleBatch] 错误:', e)
+      return {}
+    })
 }
 
 /**
@@ -246,59 +222,35 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
 }
 
 /**
- * 获取基金基本信息（名称等）- 使用 JSONP
+ * 获取基金基本信息（名称等）
  */
 export function fetchFundBasicInfo(codes) {
   console.log('[fetchFundBasicInfo] 开始, codes=', codes?.length)
   if (!codes || !codes.length) return Promise.resolve({})
 
-  return new Promise((resolve) => {
-    const callback = 'jsonp_basic_' + Date.now() + '_' + Math.random().toString(36).slice(2)
-    const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-      '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
-      '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(',')) +
-      '&jsonCallBack=' + callback
+  const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
+    '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
+    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
 
-    console.log('[fetchFundBasicInfo] URL=', url)
-    console.log('[fetchFundBasicInfo] callback=', callback)
+  console.log('[fetchFundBasicInfo] URL=', url)
 
-    window[callback] = (data) => {
-      console.log('[fetchFundBasicInfo] JSONP 回调触发, data=', data?.Datas?.length)
+  return fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      console.log('[fetchFundBasicInfo] 返回数据, Datas=', data?.Datas?.length)
       const map = {}
       const datas = (data && data.Datas) || []
       datas.forEach(item => {
         if (!item || !item.FCODE) return
         map[item.FCODE] = item.SHORTNAME || ''
       })
-      clearTimeout(timer)
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
       console.log('[fetchFundBasicInfo] 完成, map keys=', Object.keys(map).length)
-      resolve(map)
-    }
-
-    const timer = setTimeout(() => {
-      console.warn('[fetchFundBasicInfo] 超时')
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
-      resolve({})
-    }, 10000)
-
-    const script = document.createElement('script')
-    script.src = url
-    script.onload = () => {
-      console.log('[fetchFundBasicInfo] script onload')
-      clearTimeout(timer)
-    }
-    script.onerror = (e) => {
-      console.error('[fetchFundBasicInfo] script onerror:', e)
-      clearTimeout(timer)
-      delete window[callback]
-      resolve({})
-    }
-    console.log('[fetchFundBasicInfo] 添加 script 到 head')
-    document.head.appendChild(script)
-  })
+      return map
+    })
+    .catch(e => {
+      console.error('[fetchFundBasicInfo] 错误:', e)
+      return {}
+    })
 }
 
 export function getLastTradingChange(code) {
