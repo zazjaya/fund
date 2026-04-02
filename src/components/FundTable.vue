@@ -51,18 +51,28 @@
       </el-table-column>
       <el-table-column label="建议" min-width="140" #default="{ row }">
         <div class="advice-cell">
-          <div v-if="getHoldAdvice(row)" :class="getHoldAdviceClass(row)">
-            持仓：{{ getHoldAdvice(row) }}
-          </div>
-          <div v-if="getHoldAdvice(row) && getFlatAdvice(row)" class="advice-divider">————</div>
-          <div v-if="getFlatAdvice(row)" :class="getFlatAdviceClass(row)">
-            空仓：{{ getFlatAdvice(row) }}
-          </div>
-          <span v-if="!getHoldAdvice(row) && !getFlatAdvice(row)" :class="getAdviceClass(row)">{{ getSimpleAdvice(row) }}</span>
+          <template v-if="props.adviceLoading && !props.advice[row.FCODE]">
+            <span class="loading-text">计算中...</span>
+          </template>
+          <template v-else>
+            <div v-if="getHoldAdvice(row)" :class="getHoldAdviceClass(row)">
+              持仓：{{ getHoldAdvice(row) }}
+            </div>
+            <div v-if="getHoldAdvice(row) && getFlatAdvice(row)" class="advice-divider">————</div>
+            <div v-if="getFlatAdvice(row)" :class="getFlatAdviceClass(row)">
+              空仓：{{ getFlatAdvice(row) }}
+            </div>
+            <span v-if="!getHoldAdvice(row) && !getFlatAdvice(row)" :class="getAdviceClass(row)">{{ getSimpleAdvice(row) }}</span>
+          </template>
         </div>
       </el-table-column>
       <el-table-column label="原因" min-width="180" #default="{ row }">
-        <span class="reason-cell">{{ getReason(row) }}</span>
+        <span class="reason-cell">
+          <template v-if="props.adviceLoading && !props.advice[row.FCODE]">
+            <span class="loading-text">计算中...</span>
+          </template>
+          <template v-else>{{ getReason(row) }}</template>
+        </span>
       </el-table-column>
       <el-table-column prop="GZTIME" label="更新时间" width="110" sortable />
     </el-table>
@@ -121,19 +131,29 @@
             <div class="card-item">
               <span class="label">建议</span>
               <div class="advice-detail">
-                <div v-if="getHoldAdvice(fund)" :class="getHoldAdviceClass(fund)">
-                  持仓：{{ getHoldAdvice(fund) }}
-                </div>
-                <div v-if="getHoldAdvice(fund) && getFlatAdvice(fund)" class="advice-divider">————</div>
-                <div v-if="getFlatAdvice(fund)" :class="getFlatAdviceClass(fund)">
-                  空仓：{{ getFlatAdvice(fund) }}
-                </div>
-                <span v-if="!getHoldAdvice(fund) && !getFlatAdvice(fund)" :class="getAdviceClass(fund)">{{ getSimpleAdvice(fund) }}</span>
+                <template v-if="props.adviceLoading && !props.advice[fund.FCODE]">
+                  <span class="loading-text">计算中...</span>
+                </template>
+                <template v-else>
+                  <div v-if="getHoldAdvice(fund)" :class="getHoldAdviceClass(fund)">
+                    持仓：{{ getHoldAdvice(fund) }}
+                  </div>
+                  <div v-if="getHoldAdvice(fund) && getFlatAdvice(fund)" class="advice-divider">————</div>
+                  <div v-if="getFlatAdvice(fund)" :class="getFlatAdviceClass(fund)">
+                    空仓：{{ getFlatAdvice(fund) }}
+                  </div>
+                  <span v-if="!getHoldAdvice(fund) && !getFlatAdvice(fund)" :class="getAdviceClass(fund)">{{ getSimpleAdvice(fund) }}</span>
+                </template>
               </div>
             </div>
           </div>
           <div class="card-footer">
-            <span class="reason">{{ getReason(fund) }}</span>
+            <span class="reason">
+              <template v-if="props.adviceLoading && !props.advice[fund.FCODE]">
+                <span class="loading-text">计算中...</span>
+              </template>
+              <template v-else>{{ getReason(fund) }}</template>
+            </span>
             <span class="time">{{ fund.GZTIME || fund.PDATE }}</span>
           </div>
         </template>
@@ -198,7 +218,8 @@ const props = defineProps({
   title: { type: String, default: '' },
   funds: { type: Array, default: () => [] },
   advice: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  adviceLoading: { type: Boolean, default: false }
 })
 
 // 获取基金名称
@@ -744,6 +765,11 @@ const sortedFunds = computed(() => {
   color: #9ca3af;
   white-space: nowrap;
   margin-left: 8px;
+}
+
+.loading-text {
+  color: #9ca3af;
+  font-style: italic;
 }
 
 @media (max-width: 768px) {

@@ -21,12 +21,14 @@
         :funds="filteredNormalFunds"
         :advice="adviceData"
         :loading="loading"
+        :advice-loading="adviceLoading"
       />
       <FundTable
         title="上一交易日涨跌"
         :funds="filteredSpecialFunds"
         :advice="adviceData"
         :loading="loading"
+        :advice-loading="adviceLoading"
         style="margin-top: 16px;"
       />
     </div>
@@ -60,6 +62,7 @@ const keyValue = ref('')
 const sourceMode = ref('auto')
 const showAll = ref(true)
 const loading = ref(false)
+const adviceLoading = ref(false)  // 建议数据加载状态
 const showManageModal = ref(false)
 const validKey = ref('')
 const lastUpdate = ref(null)
@@ -118,14 +121,24 @@ async function loadData() {
       loading.value = false
       return
     }
+    // 先加载基金数据和指数数据
     await Promise.all([
       loadFunds(codes, sourceMode.value),
       loadIndex()
     ])
-    await loadAdvice(codes)
+    // 基金数据加载完成，立即更新时间
     lastUpdate.value = new Date()
   } finally {
     loading.value = false
+  }
+
+  // 异步加载建议数据（不阻塞主流程）
+  const codes = getEffectiveCodes()
+  if (codes && codes.length) {
+    adviceLoading.value = true
+    loadAdvice(codes).finally(() => {
+      adviceLoading.value = false
+    })
   }
 }
 
