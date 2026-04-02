@@ -214,8 +214,17 @@ git push origin lyl-dev-claude
 ```
 
 **提交规范**：
-- 提交代码时必须同步更新 README 和 changelog
-- 构建产物 `dist/` 目录一起提交
+
+提交代码前必须完成以下检查：
+
+| 项目 | 说明 |
+|------|------|
+| 代码审查 | 检查代码质量，确保逻辑正确 |
+| 补充注释 | 为新增/修改的代码添加必要注释 |
+| 更新版本信息 | README 顶部版本表添加新版本 |
+| 简要更新日志 | README 底部更新日志添加简要说明 |
+| 更新 changelog | `changelog/` 目录添加详细变更记录 |
+| 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
 
 **在线地址：** https://xuefeng0324.github.io/fund/
 
