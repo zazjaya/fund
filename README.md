@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.1.9 | 2026-04-02 | 文档：部署分支说明与 README 提交规范（含 Agent 交叉引用） |
 | v2.1.8 | 2026-04-02 | 基金估值即时显示：批量结果先展示，fundgz 结果异步补充 |
 | v2.1.7 | 2026-04-02 | 优化加载体验：估算涨跌先展示，建议原因异步加载 |
 | v2.1.6 | 2026-04-02 | 代码清理：移除调试代码、Mock 数据、诊断面板 |
@@ -203,19 +204,19 @@ npm run preview
 
 ### GitHub Pages 自动部署
 
-推送到 `lyl-dev-claude` 分支会自动触发 GitHub Actions 部署：
+推送到 **`main`**、**`lyl-dev-claude`** 或 **`pxf-dev-cursor`** 均可触发 GitHub Actions 部署（以 `.github/workflows/pages-deploy.yml` 的 `push.branches` 为准）。
 
 ```bash
-# 构建并提交
+# 构建并提交（示例：PXF 默认在 pxf-dev-cursor 上开发）
 npm run build
 git add .
-git commit -m "update"
-git push origin lyl-dev-claude
+git commit -m "docs(fund): 符合规范的说明性提交示例"
+git push origin pxf-dev-cursor
 ```
 
 **提交规范**：
 
-提交代码前必须完成以下检查：
+提交信息须使用 **Conventional Commits**（与方法论仓库 `AGENTS.md` 一致）：`<type>(<scope>): <中文描述>`，禁止使用模糊描述（如 `update`、泛泛的 `fix bug`）。提交代码前必须完成以下检查：
 
 | 项目 | 说明 |
 |------|------|
@@ -256,6 +257,12 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
+
+### v2.1.9 (2026-04-02)
+
+**文档**
+- 部署说明与 CI 触发分支对齐（`main` / `lyl-dev-claude` / `pxf-dev-cursor`）
+- 提交规范与 Conventional Commits、`cursor_agent_workflow` 规则交叉引用
 
 ### v2.1.5 (2026-04-01)
 
